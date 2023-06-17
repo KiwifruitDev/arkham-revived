@@ -61,7 +61,7 @@ There are four servers being hosted by this application.
 
 ## Message Of The Day
 
-![MOTD in-game](https://i.imgur.com/ezSeiUB.png)
+![MOTD in-game](https://i.imgur.com/HUGcQkr.png)
 
 On first run, `motd.json` will be generated in the root directory.
 
@@ -75,7 +75,11 @@ This feature is exclusively used for the `netvars.dat` file, which stores matchm
 
 ### Default Save File
 
-The default save file, `defaultsave.json`, is used for every client that connects to the server.
+![Max level in-game](https://i.imgur.com/o2Ox5hb.png)
+
+The default save file, `save.json`, is used for every client that connects to the server.
+
+It's generated on first run, pulling from `defaultsave.json` in the root directory.
 
 This file handles XP, levels, prestige, videos watched, tutorials, unlocks, loadouts, and game settings.
 
@@ -121,7 +125,7 @@ No other security measures are implemented, and the server is not intended to be
 
 After first run, a `config.json` file will be generated in the root directory.
 
-Set options in this file to configure the server its command line output.
+Set options in this file to configure the server and its command line output.
 
 ## Contributing
 

@@ -167,3 +167,6 @@ database*.*
 
 # Config
 config.json
+
+# Save
+save.json

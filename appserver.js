@@ -44,6 +44,23 @@ if(!fs.existsSync("./motd.json")) {
 }
 const motd = JSON.parse(fs.readFileSync("./motd.json"));
 
+// Load save.json (create if it doesn't exist)
+if(!fs.existsSync("./save.json")) {
+    // Read defaultsave.json if it exists
+    if(fs.existsSync("./defaultsave.json")) {
+        // Read defaultsave.json
+        const defaultsave = JSON.parse(fs.readFileSync("./defaultsave.json"));
+        // Write defaultsave.json to save.json
+        fs.writeFileSync("./save.json", JSON.stringify(defaultsave, null, 4));
+    } else {
+        // Base save.json
+        const basesave = {};
+        // Write save.json
+        fs.writeFileSync("./save.json", JSON.stringify(basesave, null, 4));
+    }
+}
+const save = JSON.parse(fs.readFileSync("./save.json"));
+
 // Database
 const db = new Database("./database.db") //, { verbose: console.log });
 db.pragma('journal_mode = WAL');
@@ -278,19 +295,11 @@ class AppServer {
                     const data = dataprep.get(uuid);
                     // Check if data exists
                     if(!data.data) {
-                        // Nothing's here, source defaultsave.json if present
-                        if(fs.existsSync("defaultsave.json")) {
-                            // Read defaultsave.json
-                            const defaultsave = fs.readFileSync("defaultsave.json");
-                            // Insert defaultsave into existing row
-                            const insert = db.prepare("UPDATE users SET data = ? WHERE uuid = ?");
-                            insert.run(Buffer.from(defaultsave).toString("base64"), uuid);
-                            // Send response
-                            res.json(JSON.parse(defaultsave));
-                        } else {
-                            // Send empty object
-                            res.json({});
-                        }
+                        // Insert save into existing row
+                        const insert = db.prepare("UPDATE users SET data = ? WHERE uuid = ?");
+                        insert.run(Buffer.from(JSON.stringify(save)).toString("base64"), uuid);
+                        // Send response
+                        res.json(save);
                         // Log response
                         LogServer(res.socket.localPort, res);
                         return;
