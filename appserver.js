@@ -12,10 +12,44 @@ import Database from "better-sqlite3";
 import getUuid from "uuid-by-string";
 import dotenv from "dotenv";
 
-let uuidkey = process.env.ARKHAM_UUID_KEY;
+// Load .env uuid key
+dotenv.config();
+const uuidkey = process.env.ARKHAM_UUID_KEY;
 
+// Load motd.json (create if it doesn't exist)
+if(!fs.existsSync("./motd.json")) {
+    // Base motd.json
+    const motd = [
+        {
+            "published_at": new Date().toUTCString(),
+            "_id": crypto.randomUUID(),
+            "contents": null,
+            "title": "Welcome to your very own custom Arkham Origins Online server!",
+        },
+        {
+            "published_at": new Date().toUTCString(),
+            "_id": crypto.randomUUID(),
+            "contents": null,
+            "title": "Edit these messages in motd.json to customize your server!",
+        },
+        {
+            "published_at": new Date().toUTCString(),
+            "_id": crypto.randomUUID(),
+            "contents": null,
+            "title": "Up to 10 messages can be sent to the client and displayed here in the main menu.",
+        },
+    ];
+    // Write motd.json
+    fs.writeFileSync("./motd.json", JSON.stringify(motd, null, 4));
+}
+const motd = JSON.parse(fs.readFileSync("./motd.json"));
+
+// Database
 const db = new Database("./database.db") //, { verbose: console.log });
 db.pragma('journal_mode = WAL');
+
+// Delete users table (temporary, users aren't persistent yet)
+db.exec("DROP TABLE users");
 
 // Create users table if it doesn't exist
 db.exec("CREATE TABLE IF NOT EXISTS users (uuid TEXT PRIMARY KEY, inventory TEXT, data TEXT)");
@@ -65,6 +99,15 @@ class AppServer {
         this.app.post("/auth/token", function(req, res) {
             // Log request
             LogServer(res.socket.localPort, req);
+            const redirect = false;
+            // If redirect is true, we'll redirect to https://ozzypc-wbid.live.ws.fireteam.net/auth/token
+            // Untested code!!!
+            if(redirect) {
+                res.redirect("https://ozzypc-wbid.live.ws.fireteam.net/auth/token");
+                // Log response
+                LogServer(res.socket.localPort, res);
+                return;
+            }
             // The uuid should be based on the ticket, the private key will be used to validate it.
             const uuid = getUuid(req.body.ticket);
             const token = {
@@ -85,22 +128,15 @@ class AppServer {
             // Log request
             LogServer(res.socket.localPort, req);
             // Build JSON response
-            const motd = {
-                "total_count": 1,
+            const motdresponse = {
+                "total_count": motd.length > 10 ? 10 : motd.length, // maximum of 10 motd entries
                 "next_page": 2,
-                "items": [
-                    {
-                        "published_at": "Fri, 6 Jun 2023 04:10:17 GMT",
-                        "_id": "81427673-396b-440c-9bc3-aa3d8ce67462",
-                        "contents": null,
-                        "title": "Welcome to the Arkham Revival custom server! Join our Discord server at https://discord.gg/jxkkkv5Ysu",
-                    },
-                ], 
+                "items": motd,
                 "page": 1,
                 "pages": 1
             };
             // Send response
-            res.json(motd);
+            res.json(motdresponse);
             // Log response
             LogServer(res.socket.localPort, res);
         });
@@ -137,6 +173,26 @@ class AppServer {
             // Log response
             LogServer(res.socket.localPort, res);
         });
+        // Endpoint: /store/vouchers/transactions
+        // POST by the game
+        this.app.post("/store/vouchers/transactions", function(req, res) {
+            // Log request
+            LogServer(res.socket.localPort, req);
+            // 200 OK
+            res.status(200).send();
+            // Log response
+            LogServer(res.socket.localPort, res);
+        });
+        // Endpoint: /store/vouchers/
+        // PUT by the game
+        this.app.put("/store/vouchers/", function(req, res) {
+            // Log request
+            LogServer(res.socket.localPort, req);
+            // 200 OK
+            res.status(200).send();
+            // Log response
+            LogServer(res.socket.localPort, res);
+        });
         // Endpoint: /users/[uuid]/[sub1]/[sub2]
         // This is where settings and other user data is stored.
         // The game may also PUT to this endpoint.
@@ -168,7 +224,7 @@ class AppServer {
             // Get UUID
             const ticket = auth[1];
             // Create UUID from ticket using uuidkey (it should be the same every time)
-            let uuid = getUuid(`${config.uuidkey}:${ticket}`);
+            let uuid = getUuid(`${uuidkey}:${ticket}`);
             Log(res.socket.localPort, `Auth: ${uuid}`);
             if(urluuid === "me") {
                 if(!subpage) {
@@ -222,8 +278,19 @@ class AppServer {
                     const data = dataprep.get(uuid);
                     // Check if data exists
                     if(!data.data) {
-                        // Nothing's here
-                        res.json({});
+                        // Nothing's here, source defaultsave.json if present
+                        if(fs.existsSync("defaultsave.json")) {
+                            // Read defaultsave.json
+                            const defaultsave = fs.readFileSync("defaultsave.json");
+                            // Insert defaultsave into existing row
+                            const insert = db.prepare("UPDATE users SET data = ? WHERE uuid = ?");
+                            insert.run(Buffer.from(defaultsave).toString("base64"), uuid);
+                            // Send response
+                            res.json(JSON.parse(defaultsave));
+                        } else {
+                            // Send empty object
+                            res.json({});
+                        }
                         // Log response
                         LogServer(res.socket.localPort, res);
                         return;
@@ -264,7 +331,7 @@ class AppServer {
             // Get UUID
             const ticket = auth[1];
             // Create UUID from ticket using uuidkey (it should be the same every time)
-            let uuid = getUuid(`${config.uuidkey}:${ticket}`);
+            let uuid = getUuid(`${uuidkey}:${ticket}`);
             Log(res.socket.localPort, `Auth: ${uuid}`);
             // Check if UUID matches the one in the URL
             if(uuid !== urluuid) {
@@ -329,6 +396,32 @@ class AppServer {
             // Log response
             LogServer(res.socket.localPort, res);
         });
+        // Endpoint: /actions/:action
+        // Unknown... Disabled for now
+        /*
+        this.app.post("/actions/arbitrate", function(req, res) {
+            // Log request
+            LogServer(res.socket.localPort, req);
+            // Just make it up
+            let arbitrators = [];
+            if(req.body.arbitrators) {
+                arbitrators = req.body.arbitrators;
+            }
+            let uuid = crypto.randomUUID();
+            res.json({
+                "pending_arbitrators": [],
+                "cancelled_arbitrators": [],
+                "arbitration_id": uuid,
+                "submitted_arbitrators": arbitrators
+            });
+            // Also, dump the request body to arbitrate.json
+            fs.writeFileSync("arbitrate.json", JSON.stringify(req.body));
+            // Send 204
+            res.status(204).send();
+            // Log response
+            LogServer(res.socket.localPort, res);
+        });
+        */
         // 404 handler
         this.app.use(function(req, res, next) {
             // Log request

@@ -1,6 +1,8 @@
 # arkham-wbid-local-server
 
-Locally hosted Fireteam WBID server for Arkham Origins Online.
+![Command line output](https://i.imgur.com/Oydg0lt.png)
+
+Locally hosted Fireteam WBID authentication server for Arkham Origins Online.
 
 ## Requirements
 
@@ -14,6 +16,17 @@ Use the following commands to install and run the server.
 git clone https://github.com/KiwifruitDev/arkham-wbid-local-server.git
 cd arkham-wbid-local-server
 npm install
+```
+
+Then create a `.env` file and set the following variables. Use a [UUID generator](https://www.uuidgenerator.net/) to generate a UUID key, this is the server's private authentication key.
+
+```env
+ARKHAM_UUID_KEY=db89c0f79bc19df4b8a4a3e02e1edcc7
+```
+
+Now, start the server.
+
+```bash
 npm start
 ```
 
@@ -46,11 +59,33 @@ There are four servers being hosted by this application.
   - This server handles logging into a WBID.
   - Unimplemented.
 
+## Message Of The Day
+
+![MOTD in-game](https://i.imgur.com/ezSeiUB.png)
+
+On first run, `motd.json` will be generated in the root directory.
+
+This file contains an array (max 10) of messages that will be displayed on the client-side.
+
 ### Public Files
 
 Files in `./public/` will be available through the `/files/` endpoint as base64-encoded strings in a JSON object.
 
-This feature is exclusively used for the `netvars.dat` file.
+This feature is exclusively used for the `netvars.dat` file, which stores matchmaking information for the game and toggling of some features (such as the WBID option in menu and Hunter, Hunted mode).
+
+### Default Save File
+
+The default save file, `defaultsave.json`, is used for every client that connects to the server.
+
+This file handles XP, levels, prestige, videos watched, tutorials, unlocks, loadouts, and game settings.
+
+Players will automatically unlock Steam achievements when playing a match or prestiging, be careful.
+
+The default json file provides all unlocks, max xp, and tutorial completion.
+
+Ideally, this file should be kept persistent for players so their progress is saved.
+
+However, there isn't a good way to identify players, so players will always be reset. See below.
 
 ### Database
 
@@ -58,25 +93,29 @@ The server uses a SQLite database to store user information.
 
 Users are currently saved per-session. Next time they log in, they will lose their progress.
 
-In the future, if permanent sessions aren't implemented, the database may be wiped on startup.
-
-There is currently no way to set default player data, such as XP. This can be done manually via a database editor and base64 re-encoding.
+On server restart, the database will be wiped. This is because player save data is not persistent yet.
 
 ### Matchmaking
 
 Matchmaking is exclusively handled by Steam from observation.
 
-This server does not handle matchmaking properly, as starting a match results in a permanent loading screen.
+A Steam lobby hosted on the same internet connection between players was tested, and the game was able to connect to it.
 
-More testing may be required to determine the cause of this issue.
+Testing over the internet results in a permanent loading screen, more testing may be required.
 
 #### OAuth
 
-This server does not implement Steam or Fireteam OAuth, which may be required for matchmaking.
+This server does not re-implement Fireteam OAuth and its ticket system.
 
-There is currently no way to implement this, as private keys are required.
+Instead, it generates per-session UUIDs determined by the ticket and a master key.
 
-It is unconfirmed if it would be necessary, however.
+This UUID is used to authenticate the user when saving data to the database.
+
+### Security
+
+The only security measure implemented is a private key used to seed UUIDs.
+
+No other security measures are implemented, and the server is not intended to be used in a production environment.
 
 ## Configuration
 

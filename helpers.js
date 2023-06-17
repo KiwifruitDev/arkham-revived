@@ -7,6 +7,7 @@
 import crypto from "crypto";
 import chalk from "chalk";
 import { Config } from "./config.js";
+import fs from "fs";
 
 // Load config (yucky: two instances of config)
 const config = new Config();
@@ -86,7 +87,7 @@ function Log(port, message) {
     // Get identity
     let monospaceIdentity = appconfig.identity.toUpperCase();
     // Pad identity with spaces
-    while(monospaceIdentity.length < appconfig.appnamelength) {
+    while(monospaceIdentity.length < config.appnamelength) {
         monospaceIdentity += " ";
     }
     // Log to console with chalk colors
