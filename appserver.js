@@ -231,7 +231,7 @@ class AppServer {
             // Get authorization header
             const auth = req.headers.authorization.split(" ");
             // Verify authorization header
-            if(auth[0] !== "Bearer") {
+            if(auth[0] != "Bearer") {
                 // Send error
                 res.status(400).send("Invalid authorization header");
                 // Log response
@@ -242,7 +242,7 @@ class AppServer {
             const ticket = auth[1];
             // Create UUID from ticket using uuidkey (it should be the same every time)
             let uuid = getUuid(`${uuidkey}:${ticket}`);
-            Log(res.socket.localPort, `Auth: ${uuid}`);
+            Log(res.socket.localPort, `AUTH: ${uuid}`);
             if(urluuid === "me") {
                 if(!subpage) {
                     // Add to database if it doesn't exist
@@ -283,7 +283,7 @@ class AppServer {
             } else if(subpage === "profile") {
                 if(subpage2 === "private") {
                     // Check if UUID matches the one in the URL
-                    if(uuid !== urluuid) {
+                    if(uuid != urluuid) {
                         // Send error
                         res.status(400).send("Invalid UUID");
                         // Log response
@@ -341,9 +341,9 @@ class AppServer {
             const ticket = auth[1];
             // Create UUID from ticket using uuidkey (it should be the same every time)
             let uuid = getUuid(`${uuidkey}:${ticket}`);
-            Log(res.socket.localPort, `Auth: ${uuid}`);
+            Log(res.socket.localPort, `AUTH: ${uuid}`);
             // Check if UUID matches the one in the URL
-            if(uuid !== urluuid) {
+            if(uuid != urluuid) {
                 // Send error
                 res.status(400).send("Invalid UUID");
                 // Log response
@@ -356,20 +356,9 @@ class AppServer {
             } else if(subpage === "profile") {
                 if(subpage2 === "private") {
                     // Verify authorization header
-                    if(auth[0] !== "Bearer") {
+                    if(auth[0] != "Bearer") {
                         // Send error
                         res.status(400).send("Invalid authorization header");
-                        // Log response
-                        LogServer(res.socket.localPort, res);
-                        return;
-                    }
-                    // Pull from database
-                    const dataprep = db.prepare("SELECT data FROM users WHERE uuid = ?");
-                    const data = dataprep.get(uuid);
-                    // Check if data exists
-                    if(!data) {
-                        // Send error
-                        res.status(400).send("Invalid UUID");
                         // Log response
                         LogServer(res.socket.localPort, res);
                         return;
