@@ -11,7 +11,7 @@ Locally hosted Fireteam WBID server for Arkham Origins Online.
 Use the following commands to install and run the server.
 
 ```bash
-git clone
+git clone https://github.com/KiwifruitDev/arkham-wbid-local-server.git
 cd arkham-wbid-local-server
 npm install
 npm start
