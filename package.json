@@ -1,0 +1,27 @@
+{
+  "name": "arkham-wbid-local-server",
+  "version": "1.0.0",
+  "description": "Locally hosted Fireteam WBID server for Arkham Origins Online.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KiwifruitDev/arkham-wbid-local-server.git"
+  },
+  "author": "KiwifruitDev",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/KiwifruitDev/arkham-wbid-local-server/issues"
+  },
+  "homepage": "https://github.com/KiwifruitDev/arkham-wbid-local-server#readme",
+  "dependencies": {
+    "better-sqlite3": "^8.4.0",
+    "chalk": "^5.2.0",
+    "dotenv": "^16.3.0",
+    "express": "^4.18.2",
+    "uuid-by-string": "^4.0.0"
+  },
+  "type": "module"
+}
