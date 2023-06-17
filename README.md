@@ -52,6 +52,32 @@ Files in `./public/` will be available through the `/files/` endpoint as base64-
 
 This feature is exclusively used for the `netvars.dat` file.
 
+### Database
+
+The server uses a SQLite database to store user information.
+
+Users are currently saved per-session. Next time they log in, they will lose their progress.
+
+In the future, if permanent sessions aren't implemented, the database may be wiped on startup.
+
+There is currently no way to set default player data, such as XP. This can be done manually via a database editor and base64 re-encoding.
+
+### Matchmaking
+
+Matchmaking is exclusively handled by Steam from observation.
+
+This server does not handle matchmaking properly, as starting a match results in a permanent loading screen.
+
+More testing may be required to determine the cause of this issue.
+
+#### OAuth
+
+This server does not implement Steam or Fireteam OAuth, which may be required for matchmaking.
+
+There is currently no way to implement this, as private keys are required.
+
+It is unconfirmed if it would be necessary, however.
+
 ## Configuration
 
 After first run, a `config.json` file will be generated in the root directory.
