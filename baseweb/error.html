@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0"/>
-    <title>Arkham: Revived</title>
+    <title>404</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
     <link href="css/style.css" type="text/css" rel="stylesheet" media="screen,projection"/>
@@ -11,43 +11,27 @@
 <body>
     <nav class="grey darken-4" role="navigation">
         <div class="nav-wrapper container"><a id="logo-container" href="/" class="brand-logo">Arkham: Revived</a>
-          <ul class="right hide-on-med-and-down">
-            <li><a href="https://discord.gg/jxkkkv5Ysu">Discord</a></li>
-            <li><a href="https://s.team/chat/FgPapTMc">Steam Chat</a></li>
-          </ul>
-    
-          <ul id="nav-mobile" class="sidenav">
-            <li><a href="https://discord.gg/jxkkkv5Ysu">Discord</a></li>
-            <li><a href="https://s.team/chat/FgPapTMc">Steam Chat</a></li>
-          </ul>
-          <a href="#" data-target="nav-mobile" class="sidenav-trigger"><i class="material-icons">menu</i></a>
+            <ul class="right hide-on-med-and-down">
+                <li><a href="https://discord.gg/jxkkkv5Ysu">Discord</a></li>
+                <li><a href="https://s.team/chat/FgPapTMc">Steam Chat</a></li>
+            </ul>
+
+            <ul id="nav-mobile" class="sidenav">
+                <li><a href="https://discord.gg/jxkkkv5Ysu">Discord</a></li>
+                <li><a href="https://s.team/chat/FgPapTMc">Steam Chat</a></li>
+            </ul>
+            <a href="#" data-target="nav-mobile" class="sidenav-trigger"><i class="material-icons">menu</i></a>
         </div>
     </nav>
-    <main class="section no-pad-bot grey darken-3 mainpage" id="index-banner">
+    <main class="section grey darken-3" id="index-banner">
         <div class="container">
             <br><br>
-            <h1 class="header center blue-text shadowtext">Arkham: Revived</h1>
+            <h1 class="header center blue-text">Error</h1>
             <div class="row center">
-                <h5 class="header col s12 light white-text shadowtext">A third-party authentication server for Batman: Arkham Origins Online.</h5>
-                <h5 class="header col s12 light white-text shadowtext">Sign in to start saving progress to your Steam account.</h5>
+                <h5 class="header col s12 light white-text" id="error-text"></h5>
             </div>
             <div class="row center">
-                <div class="col l6">
-                    <a href="/auth/" class="btn-large waves-effect waves-light green">Sign In with Steam</a>
-                </div>
-                <div class="col l6">
-                    <a href="/delete/" class="btn-large waves-effect waves-light red">Delete Progress</a>
-                </div>
-            </div>
-            <div class="row center">
-                <div class="col l12">
-                    <div class="col l12">
-                        <a href="/getting-started.html" class="btn-large waves-effect waves-light blue">Get Started</a>
-                    </div>
-                </div>
-            </div>
-            <div class="row center">
-                <a href="https://www.youtube.com/watch?v=gsMEHvqYsjc" class="header col s12 light blue-text text-lighten-3 shadowtext">Background Video</a>
+                <h5 class="header col s12 light white-text" id="real-error-text"></h5>
             </div>
             <br><br>
         </div>
@@ -94,5 +78,23 @@
     <script src="js/init.js"></script>
     <script>
         M.AutoInit();
+        // Pull parameters from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        // Get error message from URL
+        const error = urlParams.get('error');
+        // Fall back to generic error message if none is provided
+        if (error == null) {
+            document.getElementById("error-text").innerHTML = "An unknown error has occurred.";
+        } else {
+            document.getElementById("error-text").innerHTML = error;
+        }
+        // Get real error message from URL
+        const realError = urlParams.get('realerror');
+        // Fall back to generic error message if none is provided
+        if (realError == null) {
+            document.getElementById("real-error-text").innerHTML = "Please try again later.";
+        } else {
+            document.getElementById("real-error-text").innerHTML = realError;
+        }
     </script>
 </body>

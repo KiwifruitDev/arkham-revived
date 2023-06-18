@@ -84,8 +84,15 @@ db.exec("CREATE TABLE IF NOT EXISTS users (uuid TEXT PRIMARY KEY, ipaddr TEXT, i
 
 // Steam auth
 const steam = new SteamAuth({
-    realm: `http://${config.web.url}:${config.web.port}`,
-    returnUrl: `http://${config.web.url}:${config.web.port}/auth/landing`,
+    realm: `http://${config.web.url}:${config.web.http.port}`,
+    returnUrl: `http://${config.web.url}:${config.web.http.port}/auth/landing`,
+    apiKey: process.env.STEAM_API_KEY
+});
+
+// Steam deletion
+const steamdelete = new SteamAuth({
+    realm: `http://${config.web.url}:${config.web.http.port}`,
+    returnUrl: `http://${config.web.url}:${config.web.http.port}/auth/delete`,
     apiKey: process.env.STEAM_API_KEY
 });
 
@@ -443,6 +450,7 @@ if(webconfig.debug) {
 // Use folder
 web.use(webconfig.public, express.static(webconfig.public));
 
+// Account creation
 web.get("/auth/landing", async (req, res) => {
     try {
         const user = await steam.authenticate(req);
@@ -466,16 +474,51 @@ web.get("/auth/landing", async (req, res) => {
             insert.run(uuid, steamid, ipaddr);
             Log(res.socket.localPort, `USER: ${user.steamid} - UUID: ${uuid} - IP: ${ipaddr}`);
         }
-        console.log(user);
         res.redirect(`/landing.html?avatar=${user.avatar.large}&persona=${user.username}&steamid=${user.steamid}`);
     } catch (error) {
         console.error(error);
+        const message = "Steam authentication failed.";
+        res.redirect(`/error.html?error=${message}&realerror=${error}`);
+    }
+});
+
+// Account deletion
+web.get("/auth/delete", async (req, res) => {
+    let message;
+    try {
+        const user = await steamdelete.authenticate(req);
+        const steamid = user.steamid;
+        // Get existing uuid for steamid
+        const prep = db.prepare("SELECT uuid FROM users WHERE steamid = ?");
+        const data = prep.get(steamid);
+        if(data && data.uuid) {
+            // Delete user
+            const deleteprep = db.prepare("DELETE FROM users WHERE uuid = ?");
+            deleteprep.run(data.uuid);
+            Log(res.socket.localPort, `USER: ${user.steamid} - DELETED`);
+            res.redirect(`/deleted.html?avatar=${user.avatar.large}`);
+        } else {
+            // User doesn't exist
+            Log(res.socket.localPort, `USER: ${user.steamid} - NOT FOUND`);
+            message = "User not found.";
+            res.redirect(`/error.html?error=${message}`);
+        }
+    } catch (error) {
+        console.error(error);
+        message = "Steam authentication failed.";
+        res.redirect(`/error.html?error=${message}&realerror=${error}`);
     }
 });
 
 // Steam OpenID
 web.get("/auth", async (req, res) => {
     const redirectUrl = await steam.getRedirectUrl();
+    return res.redirect(redirectUrl);
+});
+
+// Request deletion
+web.get("/delete", async (req, res) => {
+    let redirectUrl = await steamdelete.getRedirectUrl();
     return res.redirect(redirectUrl);
 });
 
