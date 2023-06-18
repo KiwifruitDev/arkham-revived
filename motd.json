@@ -1,19 +1,19 @@
 [
     {
-        "published_at": "Sat, 17 Jun 2023 20:49:30 GMT",
-        "_id": "daf7250c-b515-42e6-8381-7cf8e41115f7",
+        "published_at": "Sun, 18 Jun 2023 02:02:23 GMT",
+        "_id": "adb3fd5e-9c37-49db-a13c-a62ad4c090d9",
         "contents": null,
         "title": "Welcome to your very own custom Arkham Origins Online server!"
     },
     {
-        "published_at": "Sat, 17 Jun 2023 20:49:30 GMT",
-        "_id": "f06940df-b227-4976-866a-b01d4c7221c8",
+        "published_at": "Sun, 18 Jun 2023 02:02:23 GMT",
+        "_id": "cc642cd0-c3b4-4fc1-b876-872a0a8a4b6c",
         "contents": null,
         "title": "Edit these messages in motd.json to customize your server!"
     },
     {
-        "published_at": "Sat, 17 Jun 2023 20:49:30 GMT",
-        "_id": "5676d8e6-be6a-4025-90d0-fd614d46a0b5",
+        "published_at": "Sun, 18 Jun 2023 02:02:23 GMT",
+        "_id": "aaa790b2-6a43-42d4-b80f-61f6be8448b2",
         "contents": null,
         "title": "Up to 10 messages can be sent to the client and displayed here in the main menu."
     }

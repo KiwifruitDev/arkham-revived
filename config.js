@@ -14,61 +14,39 @@ class Config {
         if(!fs.existsSync(path)) {
             // Base config
             const config = {
-                "apps": [
-                    {
-                        "identity": "base",
-                        "port": 7070,
-                        "public": "./public/",
-                        "log": {
-                            "enabled": true,
-                            "date": true,
-                            "fgcolor": "white",
-                            "bgcolor": "blue",
-                            "save": false,
-                            "savepath": "./logs/",
-                        }
+                "app": {
+                    "debug": true,
+                    "public": "./public/",
+                    "url": "localhost",
+                    "https": {
+                        "enabled": false,
+                        "key": "./ssl/web.decrypted.key",
+                        "cert": "./ssl/web.crt",
+                        "port": 4433
                     },
-                    {
-                        "identity": "echobase",
-                        "port": 7171,
-                        "public": "./public/",
-                        "log": {
-                            "enabled": true,
-                            "date": true,
-                            "fgcolor": "black",
-                            "bgcolor": "yellow",
-                            "save": false,
-                            "savepath": "./logs/",
-                        }
+                    "http": {
+                        "port": 7070
+                    }
+                },
+                "web": {
+                    "debug": true,
+                    "public": "./web/",
+                    "url": "localhost",
+                    "https": {
+                        "enabled": false,
+                        "key": "./ssl/web.decrypted.key",
+                        "cert": "./ssl/web.crt",
+                        "port": 443
                     },
-                    {
-                        "identity": "wbidticket",
-                        "port": 7272,
-                        "public": "./public/",
-                        "log": {
-                            "enabled": true,
-                            "date": true,
-                            "fgcolor": "black",
-                            "bgcolor": "green",
-                            "save": false,
-                            "savepath": "./logs/",
-                        }
-                    },
-                    {
-                        "identity": "wbidams",
-                        "port": 7373,
-                        "public": "./public/",
-                        "log": {
-                            "enabled": true,
-                            "date": true,
-                            "fgcolor": "black",
-                            "bgcolor": "red",
-                            "save": false,
-                            "savepath": "./logs/",
-                        }
-                    },
-                ],
-                "appnamelength": 10,
+                    "http": {
+                        "port": 8080
+                    }
+                },
+                "database": {
+                    "debug": false,
+                    "path": "./database.db",
+                    "wipe_on_start": false
+                }
             };
             // Write config to file
             fs.writeFileSync("./config.json", JSON.stringify(config, null, 4));

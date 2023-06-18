@@ -1,8 +1,10 @@
 # arkham-wbid-local-server
 
-![Command line output](https://i.imgur.com/Oydg0lt.png)
+<img src="https://i.imgur.com/ACGb3uS.png" height="50%" width="50%">
 
 Locally hosted Fireteam WBID authentication server for Arkham Origins Online.
+
+Supports user authentication and saving of player data.
 
 ## Requirements
 
@@ -18,11 +20,16 @@ cd arkham-wbid-local-server
 npm install
 ```
 
-Then create a `.env` file and set the following variables. Use a [UUID generator](https://www.uuidgenerator.net/) to generate a UUID key, this is the server's private authentication key.
+Then create a `.env` file and set the following variables.
 
 ```env
-ARKHAM_UUID_KEY=db89c0f79bc19df4b8a4a3e02e1edcc7
+ARKHAM_UUID_KEY=[UUID key]
+STEAM_API_KEY=[Steam API key]
 ```
+
+Use a [UUID generator](https://www.uuidgenerator.net/) to generate a UUID key, this is the server's private authentication key.
+
+Generate a [Steam API key](https://steamcommunity.com/dev/apikey) in order to save player data.
 
 Now, start the server.
 
@@ -30,36 +37,39 @@ Now, start the server.
 npm start
 ```
 
+## Usage
+
+There are two servers being hosted by this application. The default ports are listed below.
+
+- `7070`
+  - This is the main server that handles the login process.
+  - The game connects to this server to authenticate the user.
+    - When the user logs in, their IP is checked for linkage.
+      - Link your IP using the website on port `8080` to log into Steam.
+    - If the IP address is not linked, the server will generate a UUID using the game's one-time ticket and the private key.
+      - This non-persistent UUID is only valid for the current session and will not save progress.
+  - Enabling HTTPS will change this port to `4433` by default.
+- `8080`
+  - This is the website server that handles linking of IP addresses to Steam accounts.
+  - The user must log in with Steam, then their IP is automatically linked.
+    - If the user has never linked before, a new UUID will be generated for them.
+    - If the user has a previous IP address, it will be overwritten.
+  - Enabling HTTPS will change this port to `443` by default.
+
+### Client Setup
+
 On the client-side, set the following variables in `DefaultWBIDVars.ini`, replacing "localhost" with a remote server if desired.
+
+If your port is not `7070` or HTTPS is enabled, change the port number and protocol accordingly.
 
 ```ini
 [GDHttp]
 BaseUrl="http://localhost:7070"
-EchoBaseURL="http://localhost:7171"
-WBIDTicketURL="http://localhost:7272"
-WBIDAMSURL="http://localhost:7373"
 ```
 
-This will redirect requests to third-party servers instead of the Fireteam servers.
+This will redirect requests to your server instead of the official server.
 
-## Usage
-
-There are four servers being hosted by this application.
-
-- BASE: Port 7070
-  - This is the main server that handles the login process.
-  - In-progress.
-- ECHOBASE: Port 7171
-  - Unknown purpose, likely for gameplay stats.
-  - Unimplemented.
-- WBIDTICKET: Port 7272
-  - Unknown purpose.
-  - Unimplemented.
-- WBIDAMS: Port 7373
-  - This server handles logging into a WBID.
-  - Unimplemented.
-
-## Message Of The Day
+### Message Of The Day
 
 ![MOTD in-game](https://i.imgur.com/HUGcQkr.png)
 
@@ -69,9 +79,11 @@ This file contains an array (max 10) of messages that will be displayed on the c
 
 ### Public Files
 
-Files in `./public/` will be available through the `/files/` endpoint as base64-encoded strings in a JSON object.
+Files in `./public/` will be available through the `/files/` endpoint on default port `7070` as base64-encoded strings in a JSON object.
 
 This feature is exclusively used for the `netvars.dat` file, which stores matchmaking information for the game and toggling of some features (such as the WBID option in menu and Hunter, Hunted mode).
+
+Alongside the game server, files in `./web/` will be available through the default port `8080` as a website.
 
 ### Default Save File
 
@@ -85,19 +97,15 @@ This file handles XP, levels, prestige, videos watched, tutorials, unlocks, load
 
 Players will automatically unlock Steam achievements when playing a match or prestiging, be careful.
 
-The default json file provides all unlocks, max xp, and tutorial completion.
-
-Ideally, this file should be kept persistent for players so their progress is saved.
-
-However, there isn't a good way to identify players, so players will always be reset. See below.
+The default json file skips tutorials and starts players at level 1 with all redemptions.
 
 ### Database
 
-The server uses a SQLite database to store user information.
+The server uses a SQLite database under `database.db` to store user information.
 
-Users are currently saved per-session. Next time they log in, they will lose their progress.
+Users are identified by their UUID, linked IP address, and Steam ID.
 
-On server restart, the database will be wiped. This is because player save data is not persistent yet.
+Only authenticated users are saved to the database.
 
 ### Matchmaking
 
@@ -105,7 +113,11 @@ Matchmaking is exclusively handled by Steam from observation.
 
 A Steam lobby hosted on the same internet connection between players was tested, and the game was able to connect to it.
 
-Testing over the internet results in a permanent loading screen, more testing may be required.
+Theoretically, this server should allow Steam to connect players to each other as if this server was in a separate realm than the official server.
+
+This means that players will only match with other players using this server, and vice versa.
+
+Not much testing has been done with this feature, so it may not work as intended.
 
 #### OAuth
 
@@ -113,7 +125,9 @@ This server does not re-implement Fireteam OAuth and its ticket system.
 
 Instead, it generates per-session UUIDs determined by the ticket and a master key.
 
-This UUID is used to authenticate the user when saving data to the database.
+If the user's IP address is found in the database, the server will provide the linked UUID.
+
+Otherwise, their data will not be saved.
 
 ### Security
 
@@ -121,11 +135,15 @@ The only security measure implemented is a private key used to seed UUIDs.
 
 No other security measures are implemented, and the server is not intended to be used in a production environment.
 
+Users cannot yet delete their data from the database, but this feature will be implemented in the future.
+
 ## Configuration
 
 After first run, a `config.json` file will be generated in the root directory.
 
 Set options in this file to configure the server and its command line output.
+
+When updating, it is recommended to delete this file to ensure that the latest version is used.
 
 ## Contributing
 
