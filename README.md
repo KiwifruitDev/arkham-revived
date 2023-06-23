@@ -1,22 +1,94 @@
-# arkham-wbid-local-server
+# Arkham: Revived
 
 <img src="https://i.imgur.com/ACGb3uS.png" height="50%" width="50%">
 
-Locally hosted Fireteam WBID authentication server for Arkham Origins Online.
+A custom authentication server for Batman: Arkham Origins Online.
 
-Supports user authentication and saving of player data.
+Supports user authentication, saving of player data, linkage to Steam and Discord accounts, and Discord game invite generation.
 
-## Requirements
+Join the [Discord](https://discord.gg/6Sab2tbauC) for support, updates, and matchmaking.
 
-[Node.js](https://nodejs.org/en/) is required to run this server.
+## Usage
 
-## Installation
+Follow these steps in order to play on Arkham: Revived.
+
+1. Open the game directory for Batman: Arkham Origins through Steam.
+2. Navigate through `Online/BmGame/Config/DefaultWBIDVars.ini` and open it in a text editor.
+3. Find the following values:
+
+    ```ini
+    [GDHttp]
+    BaseUrl="https://ozzypc-wbid.live.ws.fireteam.net/"
+    EchoBaseURL="http://in.echo.fireteam.net/"
+    WBIDTicketURL="https://tokenservice.psn.turbine.com/TokenService"
+    WBIDAMSURL="https://cls.turbine.com/CLS"
+    ClientId="0938aa7a-6682-4b90-a97d-90becbddb9ce"
+    ClientIdSP="6ca97b4e-d278-48a4-8b66-80468447a513"
+    ClientSecret="GXnNQaRSuxaxlm6uR35HVk39u"
+    ClientSecretSP="AzyEBlZdY87HO3HINj7rqoBo7"
+    EchoUsername="8b8f1d8554d5437b8cdf689082311680"
+    EchoPassword="b3014aee79ba4968886003ecb271f764"
+    Environment="Live"
+    ```
+
+4. Replace them with these values:
+
+    ```ini
+    [GDHttp]
+    BaseUrl="https://arkham.kiwifruitdev.page/"
+    EchoBaseURL="http://in.echo.fireteam.net/"
+    WBIDTicketURL="https://tokenservice.psn.turbine.com/TokenService"
+    WBIDAMSURL="https://arkham.kiwifruitdev.page/CLS"
+    ClientId="0938aa7a-6682-4b90-a97d-90becbddb9ce"
+    ClientIdSP="6ca97b4e-d278-48a4-8b66-80468447a513"
+    ClientSecret="GXnNQaRSuxaxlm6uR35HVk39u"
+    ClientSecretSP="AzyEBlZdY87HO3HINj7rqoBo7"
+    EchoUsername="8b8f1d8554d5437b8cdf689082311680"
+    EchoPassword="b3014aee79ba4968886003ecb271f764"
+    Environment="Live"
+    ```
+
+    - Note: The `BaseUrl` and `WBIDAMSURL` values are the only ones that need to be changed.
+
+5. Save the file and close it. This will allow the game to connect to Arkham: Revived.
+6. Launch the game and make sure you've reached the main menu.
+7. Close the game and re-launch it. This will ensure your account is linked to Steam.
+8. Launch the game and click on **Store** in the main menu.
+9. If your account was linked successfully, your display name will be shown as a store item.
+10. You're now ready to play!
+
+### Migration
+
+Migrating progress from official servers is possible, follow these steps to start the process.
+
+1. Follow the above steps and launch the game if you haven't already.
+2. Take note of the price of the "Migrations" store option. This is the total number of migrations performed.
+3. Click on "Store" in the main menu and click on "Migrate from official servers".
+4. When asked to purchase, click yes. You will not be charged.
+5. If an item you've earned says "Account migration process started", close the game and wait up to 5 minutes.
+6. Launch the game and click on "Store" in the main menu.
+7. If the "Migrations" store option's price increased by 1, your account has been migrated.
+8. You're now ready to play with your existing ranks and XP!
+
+## Setup
+
+Setting up your own Arkham: Revived instance requires quite a bit of setup within the command line and external services.
+
+There is no need to create your own instance, as an instance is already hosted at `arkham.kiwifruitdev.page` for public use.
+
+### Requirements
+
+- [Node.js](https://nodejs.org/en/)
+- [Steam API Key](https://steamcommunity.com/dev/apikey)
+- [Discord Application](https://discord.com/developers/applications)
+
+### Installation
 
 Use the following commands to install and run the server.
 
 ```bash
-git clone https://github.com/KiwifruitDev/arkham-wbid-local-server.git
-cd arkham-wbid-local-server
+git clone https://github.com/KiwifruitDev/arkham-revived.git
+cd arkham-revived
 npm install
 ```
 
@@ -25,49 +97,22 @@ Then create a `.env` file and set the following variables.
 ```env
 ARKHAM_UUID_KEY=[UUID key]
 STEAM_API_KEY=[Steam API key]
+DISCORD_CLIENT_ID=[Discord Application OAuth2 Client ID]
+DISCORD_CLIENT_SECRET=[Discord Application OAuth2 Client Secret]
+DISCORD_BOT_TOKEN=[Discord Application Bot Token]
 ```
 
 Use a [UUID generator](https://www.uuidgenerator.net/) to generate a UUID key, this is the server's private authentication key.
 
 Generate a [Steam API key](https://steamcommunity.com/dev/apikey) in order to save player data.
 
+Create a [Discord Application](https://discord.com/developers/applications) and create a bot.
+
 Now, start the server.
 
 ```bash
-npm start
+node .
 ```
-
-## Usage
-
-There are two servers being hosted by this application. The default ports are listed below.
-
-- `7070`
-  - This is the main server that handles the login process.
-  - The game connects to this server to authenticate the user.
-    - When the user logs in, their IP is checked for linkage.
-      - Link your IP using the website on port `8080` to log into Steam.
-    - If the IP address is not linked, the server will generate a UUID using the game's one-time ticket and the private key.
-      - This non-persistent UUID is only valid for the current session and will not save progress.
-  - Enabling HTTPS will change this port to `4433` by default.
-- `8080`
-  - This is the website server that handles linking of IP addresses to Steam accounts.
-  - The user must log in with Steam, then their IP is automatically linked.
-    - If the user has never linked before, a new UUID will be generated for them.
-    - If the user has a previous IP address, it will be overwritten.
-  - Enabling HTTPS will change this port to `443` by default.
-
-### Client Setup
-
-On the client-side, set the following variables in `DefaultWBIDVars.ini`, replacing "localhost" with a remote server if desired.
-
-If your port is not `7070` or HTTPS is enabled, change the port number and protocol accordingly.
-
-```ini
-[GDHttp]
-BaseUrl="http://localhost:7070"
-```
-
-This will redirect requests to your server instead of the official server.
 
 ### Message Of The Day
 

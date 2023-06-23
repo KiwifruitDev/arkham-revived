@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0"/>
+    
+    <!-- HTML Meta Tags -->
+    <title>Arkham: Revived: Error</title>
+    <meta name="description" content="Arkham: Revived is a custom authentication server for Batman: Arkham Origins Online.">
+    <!-- Facebook Meta Tags -->
+    <meta property="og:url" content="https://arkham.kiwifruitdev.page">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Arkham: Revived: Error">
+    <meta property="og:description" content="Arkham: Revived is a custom authentication server for Batman: Arkham Origins Online.">
+    <meta property="og:image" content="https://arkham.kiwifruitdev.page/img/arkhamrevived3.png">
+    <!-- Twitter Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta property="twitter:domain" content="arkham.kiwifruitdev.page">
+    <meta property="twitter:url" content="https://arkham.kiwifruitdev.page">
+    <meta name="twitter:title" content="Arkham: Revived: Error">
+    <meta name="twitter:description" content="Arkham: Revived is a custom authentication server for Batman: Arkham Origins Online.">
+    <meta name="twitter:image" content="https://arkham.kiwifruitdev.page/img/arkhamrevived3.png">
+    <!-- Meta Tags Generated via https://www.opengraph.xyz -->
+    
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <link href="css/style.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+</head>
+<body>
+    <nav class="grey darken-4" role="navigation">
+        <div class="nav-wrapper container"><a id="logo-container" href="/" class="brand-logo">Arkham: Revived</a>
+            <ul class="right hide-on-med-and-down">
+                <li><a href="https://discord.gg/6Sab2tbauC">Discord</a></li>
+                <li><a href="https://s.team/chat/FgPapTMc">Steam Chat</a></li>
+            </ul>
+
+            <ul id="nav-mobile" class="sidenav">
+                <li><a href="https://discord.gg/6Sab2tbauC">Discord</a></li>
+                <li><a href="https://s.team/chat/FgPapTMc">Steam Chat</a></li>
+            </ul>
+            <a href="#" data-target="nav-mobile" class="sidenav-trigger"><i class="material-icons">menu</i></a>
+        </div>
+    </nav>
+    <main class="section grey darken-3" id="index-banner">
+        <div class="container">
+            <br><br>
+            <h1 class="header center grey-text">Error</h1>
+            <div class="row center">
+                <h5 class="header col s12 light white-text" id="error-text"></h5>
+            </div>
+            <div class="row center">
+                <h5 class="header col s12 light white-text" id="real-error-text"></h5>
+            </div>
+            <br><br>
+        </div>
+    </main>
+    <footer class="page-footer grey darken-1">
+        <div class="container">
+            <div class="row">
+                <div class="col l5 s12">
+                    <h5 class="white-text">How it works</h5>
+                    <p class="grey-text text-lighten-4">
+                        Arkham: Revived is a third-party authentication server for Batman: Arkham Origins Online.
+                        It allows you to sign in to the game using your Steam account to save progress.
+                        Due to technical limitations, the server only knows your Steam information by your IP address.
+                        This means that if your IP address changes, you will have to sign in again.
+                        Linking with Steam is optional, but progress will not be saved otherwise.
+                    </p>
+                </div>
+                <div class="col l5 s12">
+                    <h5 class="white-text">Why?</h5>
+                    <p class="grey-text text-lighten-4">
+                        The official servers for Batman: Arkham Origins Online were shut down in 2016, however the game is still playable through a quick workaround.
+                        The servers are not likely to stay up for much longer, so this project was created to allow players to continue playing the game once the servers finally shut down for good.
+                        You must own the game on Steam to play, as the game still uses Steam for matchmaking and DLC verification.
+                    </p>
+                </div>
+                <div class="col l2 s12">
+                    <h5 class="white-text">Links</h5>
+                    <ul>
+                        <li><a class="blue-text text-lighten-3" href="https://discord.gg/6Sab2tbauC">Discord</a></li>
+                        <li><a class="blue-text text-lighten-3" href="https://s.team/chat/FgPapTMc">Steam Chat</a></li>
+                        <li><a class="blue-text text-lighten-3" href="https://github.com/KiwifruitDev/arkham-wbid-local-server">GitHub</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="footer-copyright">
+            <div class="container">
+            Framework by <a class="orange-text text-lighten-3" href="http://materializecss.com">Materialize</a>.
+            </div>
+        </div>
+    </footer>
+    <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <script src="js/init.js"></script>
+    <script>
+        M.AutoInit();
+        // Pull parameters from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        // Get error message from URL
+        const error = urlParams.get('error');
+        // Fall back to generic error message if none is provided
+        if (error == null) {
+            document.getElementById("error-text").innerHTML = "An unknown error has occurred.";
+        } else {
+            document.getElementById("error-text").innerHTML = error;
+        }
+        // Get real error message from URL
+        const realError = urlParams.get('realerror');
+        // Fall back to generic error message if none is provided
+        if (realError == null) {
+            document.getElementById("real-error-text").innerHTML = "Please try again later.";
+        } else {
+            document.getElementById("real-error-text").innerHTML = realError;
+        }
+    </script>
+</body>

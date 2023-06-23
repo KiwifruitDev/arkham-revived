@@ -162,11 +162,5 @@ dist
 
 # End of https://www.toptal.com/developers/gitignore/api/node,visualstudiocode
 
-# Project files
-database*.*
-config.json
-save.json
-motdcustom.json
-web/
-*.key
-*.crt
+# User configuration
+usercfg/

@@ -1,0 +1,53 @@
+{
+    "total_count": 4,
+    "next_page": 2,
+    "items": [
+      {
+        "item_id": "f2b44d03-33ba-4ebe-93a9-033693189422",
+        "price": {
+          "b0be7fae-1c6a-5ddf-b0de-97db7c8afa48": -4
+        },
+        "vendor": 0,
+        "id": "283047af-006e-4fe7-a3a1-4351fe94d476",
+        "product_id": ""
+      },
+      {
+        "item_id": "63598daa-6c2b-4895-a15f-5af4a435ccf8",
+        "price": {
+          "b0be7fae-1c6a-5ddf-b0de-97db7c8afa48": -3
+        },
+        "vendor": 0,
+        "id": "e62345be-304c-4551-8472-8bd2c367f3f3",
+        "product_id": ""
+      },
+      {
+        "item_id": "774c23b3-8a63-46a7-b90d-e719b441a72b",
+        "price": {
+          "b0be7fae-1c6a-5ddf-b0de-97db7c8afa48": -2
+        },
+        "vendor": 0,
+        "id": "8b611b15-b560-463d-af74-78915fa399f7",
+        "product_id": ""
+      },
+      {
+        "item_id": "24d120f9-8b68-47c9-8f17-28e1022c6007",
+        "price": {
+          "b0be7fae-1c6a-5ddf-b0de-97db7c8afa48": -1
+        },
+        "vendor": 0,
+        "id": "d7482553-7c71-41a0-8db1-ab272089bd89",
+        "product_id": ""
+      },
+      {
+        "item_id": "1f6de0b2-f4d2-42cf-ac0e-39f4c2139116",
+        "price": {
+          "b0be7fae-1c6a-5ddf-b0de-97db7c8afa48": 123456789
+        },
+        "vendor": 0,
+        "id": "00834010-c1ad-4197-a010-2934d5eb0d4a",
+        "product_id": ""
+      }
+    ],
+    "page": 1,
+    "pages": 1
+}

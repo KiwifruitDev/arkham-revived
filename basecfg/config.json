@@ -1,0 +1,51 @@
+{
+    "host": {
+        "public": "./web/",
+        "domain": "example.com",
+        "http_port": 80,
+        "https_port": 443,
+        "https_enabled": true,
+        "localhost_passthrough_port": 8080,
+        "localhost_passthrough_enabled": false,
+        "https_key": "./ssl/privkey.pem",
+        "https_cert": "./ssl/cert.pem",
+        "keepalive_timeout": 5,
+        "show_port": false
+    },
+    "database": {
+        "path": "./database.db",
+        "wipe_on_start": false
+    },
+    "localhost": "0.0.0.0",
+    "debug": true,
+    "discord_bot": {
+        "enabled": true,
+        "commands_md5": "",
+        "status": "online",
+        "activity_type": "playing",
+        "activity": "Arkham Origins Online",
+        "maps": {
+            "any": {
+                "name": "Any Map",
+                "thumbnail": "https://i.imgur.com/vjI4tjw.png"
+            },
+            "mp_wcp": {
+                "name": "Wayne Chemical Plant",
+                "thumbnail": "https://i.imgur.com/f1Yqnq2.png"
+            },
+            "mp_prison": {
+                "name": "Blackgate Prison",
+                "thumbnail": "https://i.imgur.com/lLfK8D2.png"
+            },
+            "mp_funhouse": {
+                "name": "Joker's Funhouse",
+                "thumbnail": "https://i.imgur.com/cuYmkn8.png"
+            },
+            "mp_robotfactory": {
+                "name": "Wonder City Robot Factory",
+                "thumbnail": "https://i.imgur.com/PI0Ssj0.png"
+            }
+        }
+    },
+    "appid": "209000"
+}

@@ -1,0 +1,130 @@
+[Default__RInventoryGadget RInventoryGadget]
+TestNetVarValue=1
+
+[SideArm_01_UPG_00 GDSideArmGadget]
+TestNetVarValue=2
+
+[GameplayStats.Echo]
+Enabled=true
+
+[Default__RGFxMovieUI_MainMenu RGFxMovieUI_MainMenu]
+bEnableWBID=false
+
+[Default__GDProfileSystemMatchmakingData GDProfileSystemMatchmakingData]
+Cfg_INT_MaxHistoricalMatches=100
+Cfg_FLOAT_CurveStartedModifier=20.0
+Cfg_FLOAT_CurveWonModifier=10.0
+Cfg_FLOAT_NumberOfSkills=100.0
+Cfg_FLOAT_MinValidSkill=1.0
+Cfg_FLOAT_NumMatchesUsingRandomSpread=20.0
+Cfg_FLOAT_InitialRandomSkillSpread=40.0
+Cfg_FLOAT_MinMatchesForFinishRatioCheck=10
+Cfg_FLOAT_MinFinishRatio=-1.0
+Cfg_FLOAT_MatchmakingSkillCalcCurveDelta=0.2
+Cfg_FLOAT_MatchmakingSearchSkillIncreaseSpeed=1.0
+Cfg_FLOAT_MatchmakingSearchSkillIncreaseSpeedMax=5.0
+Cfg_FLOAT_MatchmakingSearchSkillIncreaseAccel=0.1
+Cfg_INT_MatchmakingSearchNumTriesSameSkill=5
+Cfg_FLOAT_MatchmakingSearchTimeoutSearch=5.f
+Cfg_FLOAT_MatchmakingSearchTimeoutJoin=30.f
+Cfg_FLOAT_MatchmakingSearchRequestThrottleTime=1.f
+
+[Default__GDProfileSystemMatchmakingHistoricalData GDProfileSystemMatchmakingHistoricalData]
+MaxHistoricalBandwidthValues=10
+
+[Default__GDArbitrationSystem GDArbitrationSystem]
+XPToCreditsConversionRate=0.125
+
+[GDArbitrationSystem_0 GDArbitrationSystem]
+XPToCreditsConversionRate=0.125
+
+[Default__RExperienceSystem RExperienceSystem]
+XPToWeaponPointsConversionRate=0.2
+
+[Default__GDWorldInfo GDWorldInfo]
+bHunterHuntedEnabled=true
+
+[Default__GDLobbyHostBeacon GDLobbyHostBeacon]
+EchoStatsCaptureProbability=0.05
+
+[Default__OnlineSubsystem OnlineSubsystem]
+MinRequiredPingForQuickMatchSearchResult=10000
+MinTimeBetweenMatchmakingServerBandwidthQuery=1800
+
+[Default__SDLobbySystem SDLobbySystem]
+MinQuickMatchSearchResultsDesired=5
+MinQuickSearchTime=4
+MaxQuickSearchTime=5
+GoodConnectionUpSpeed = 5000000
+BadConnectionUpSpeed  = 500000
+
+[Default__GDGFxMovieUI_LobbyBase GDGFxMovieUI_LobbyBase]
+GameStartTimerValue=5.0
+LobbyCountdownTime=15.0
+
+[Default__GDGFxMovieUI_LobbyMenu GDGFxMovieUI_LobbyMenu]
+GameStartTimerValue=5.0
+LobbyCountdownTime=15.0
+
+[GDGFxMovieUI_LobbyMenu GDGFxMovieUI_LobbyMenu]
+GameStartTimerValue=5.0
+LobbyCountdownTime=15.0
+
+[Default__OnlineGameSearch OnlineGameSearch]
+PingBucketSize=100
+
+[OnlineGameSearch OnlineGameSearch]
+PingBucketSize=100
+
+[Default__SDLocalQuery SDLocalQuery]
+PingBucketSize=100
+
+[SDLocalQuery_0 SDLocalQuery]
+PingBucketSize=100
+
+[SDLocalQuery SDLocalQuery]
+PingBucketSize=100
+
+[CCA_Joker_Facepaint_08 GDCharCustomAsset_FacePaint]
+bUseGameplayEffector=true
+
+[CCA_Bane_Pants_03 GDCharCustomAsset_Lower]
+GearPlusUUID=
+
+[CCA_Bane_Goggles_01 GDCharCustomAsset_FaceGear]
+bUseGameplayEffector=true
+
+[ThugHelicopter_V1 GDThugRCHelicopter]
+InterThrowRechargeTime=54.f
+
+[ThugHelicopter_V2 GDThugRCHelicopter]
+InterThrowRechargeTime=72.f
+
+[ThugHelicopter_V3 GDThugRCHelicopter]
+InterThrowRechargeTime=72.f
+
+[ThugHelicopter_V4 GDThugRCHelicopter]
+InterThrowRechargeTime=72.f
+
+[ThugHelicopter_V5 GDThugRCHelicopter]
+InterThrowRechargeTime=72.f
+
+[Shotgun_01_UPG_00 GDShotgunGadget]
+SpreadGenerators[0]=4595
+SpreadGenerators[1]=6116
+SpreadGenerators[2]=3669
+
+[Shotgun_01_UPG_01 GDShotgunGadget]
+SpreadGenerators[0]=4595
+SpreadGenerators[1]=6116
+SpreadGenerators[2]=3669
+
+[Shotgun_01_UPG_02 GDShotgunGadget]
+SpreadGenerators[0]=4595
+SpreadGenerators[1]=6116
+SpreadGenerators[2]=3669
+
+[Shotgun_01_UPG_03 GDShotgunGadget]
+SpreadGenerators[0]=4595
+SpreadGenerators[1]=6116
+SpreadGenerators[2]=3669
