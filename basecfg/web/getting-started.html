@@ -52,37 +52,13 @@
             <img class="circle responsive-img scale-transition" id="profile-pic"></img>
           </a>
           <h5 class="white-text" id="profile-name"></h5>
-          <h5 class="header col s12 light white-text">Follow these steps in order to play on Arkham: Revived.</h5>
-          <ul>
-            <li class="col s12 white-text">1. Open the game directory for Batman: Arkham Origins through Steam.</li>
-            <li class="col s12 white-text">2. Navigate through "Online/BmGame/Config/DefaultWBIDVars.ini" and open it in a text editor.</li>
-            <li class="col s12 white-text" id="baseurl">3. Find the line that begins with "BaseUrl=" and replace its value with "%BASE_URL%".</li>
-            <li class="col s12 white-text" id="amsurl">4. Find the line that begins with "WBIDAMSURL=" and replace its value with "%AMS_URL%".</li>
-            <li class="col s12 white-text">5. Save the file and close it. This will allow the game to connect to Arkham: Revived.</li>
-            <li class="col s12 white-text">6. Launch the game and make sure you've reached the main menu.</li>
-            <li class="col s12 white-text">7. Close the game and re-launch it. This will ensure your account is linked to Steam.</li>
-            <li class="col s12 white-text">8. Launch the game and click on "Store" in the main menu.</li>
-            <li class="col s12 white-text">9. If your account is linked, your display name will be shown as a store item.</li>
-            <li class="col s12 white-text">10. You're now ready to play!</li>
-          </ul>
-        </div>
-        <div class="row center">
-          <h5 class="header col s12 light white-text">Want to migrate progress?</h5>
-          <ul>
-            <li class="col s12 white-text">1. Follow the above steps and launch the game if you haven't already.</li>
-            <li class="col s12 white-text">2. Take note of the price of the "Migrations" store option. This is the total number of migrations performed.</li>
-            <li class="col s12 white-text">3. Click on "Store" in the main menu and click on "Migrate from official servers".</li>
-            <li class="col s12 white-text">4. When asked to purchase, click yes. You will not be charged.</li>
-            <li class="col s12 white-text">5. If an item you've earned says "Account migration process started", close the game and wait up to 5 minutes.</li>
-            <li class="col s12 white-text">6. Launch the game and click on "Store" in the main menu.</li>
-            <li class="col s12 white-text">7. If the "Migrations" store option's price increased by 1, your account has been migrated.</li>
-            <li class="col s12 white-text">8. You're now ready to play with your existing ranks and XP!</li>
-          </ul>
+          <p class="col s12 white-text" id="baseurl">Click below and follow the instructions to get started.
+          <br>
+          Source IP Address: %BASE_URL%</p>
+          <a class="waves-effect waves-light btn orange" href="https://gist.github.com/KiwifruitDev/48d6942c0d3613e552622b1b66b8b819">View Guide</a>
         </div>
       <div class="row center">
-        <h5 class="header col s12 light white-text">Ready to configure?</h5>
-        <br><br><br>
-        <a href="/auth" class="btn waves-effect waves-light green" id="landing">Visit Landing Page</a>
+        <a href="/auth" class="btn waves-effect waves-light green" id="landing">Go Back</a>
       </div>
     </main>
     <footer class="page-footer grey darken-1">
@@ -145,7 +121,7 @@
         document.getElementById('profile-pic').src = profilePic;
         document.getElementById('profile-name').innerHTML = `${profileName}`;
         // Get the current domain name and set the base URL
-        var currentDomain = window.location.hostname;
+        var currentDomain = "arkham.kiwifruitdev.page"; //window.location.hostname;
         // Port?
         if (window.location.port) {
             // If it's 80 or 443, don't add it
@@ -153,17 +129,33 @@
                 currentDomain += `:${window.location.port}`;
             }
         }
-        // HTTP(S)?
-        if (window.location.protocol == 'http:') {
-            currentDomain = `http://${currentDomain}`;
-        } else {
-            currentDomain = `https://${currentDomain}`;
-        }
+        // Remove ports
+        currentDomain = currentDomain.replace(/:\d+/, '');
+        // Resolve currentdomain to ip address using 1.1.1.1
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', `https://cloudflare-dns.com/dns-query?name=${currentDomain}&type=A`, true);
+        xhr.setRequestHeader('accept', 'application/dns-json');
+        xhr.onload = function () {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    console.log(xhr.responseText);
+                    var response = JSON.parse(xhr.responseText);
+                    var ip = response.Answer[0].data;
+                    baseurlelement.innerHTML = baseurlelement.innerHTML.replace('%BASE_URL%', ip);
+                } else {
+                    console.error(xhr.statusText);
+                }
+            } else {
+                console.error(xhr.statusText);
+            }
+        };
+        xhr.onerror = function () {
+            console.error(xhr.statusText);
+        };
+        xhr.send(null);
         var baseurlelement = document.getElementById('baseurl');
         var amsurlelement = document.getElementById('amsurl');
         var steamid = decodeURIComponent(getParameterByName('steamid'));
-        baseurlelement.innerHTML = baseurlelement.innerHTML.replace('%BASE_URL%', currentDomain);
-        amsurlelement.innerHTML = amsurlelement.innerHTML.replace('%AMS_URL%', currentDomain + "/CLS");
         var loggedin = decodeURIComponent(getParameterByName('loggedin'));
         var additional = "";
         if (loggedin == 'true') {

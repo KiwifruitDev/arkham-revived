@@ -3,24 +3,40 @@
 // Copyright (c) 2023 KiwifruitDev
 
 // Imports
-import express from "express";
-import fse from "fs-extra";
-import crypto from "crypto";
-import Database from "better-sqlite3";
-import getUuid from "uuid-by-string";
-import dotenv from "dotenv";
-import path from "path";
-import SteamAuth from "node-steam-openid";
-import https from "https";
-import http from "http";
-import { js2xml, xml2js } from "xml-js";
-import axios from "axios";
-import qs from "qs";
-import geoip from "geoip-lite";
-import { REST, Routes, Client, GatewayIntentBits, ActivityType, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
-
-// __dirname
-const __dirname = path.resolve();
+const express = require("express");
+const fse = require("fs-extra");
+const crypto = require("crypto");
+const Database = require("better-sqlite3");
+const getUuid = require("uuid-by-string");
+const dotenv = require("dotenv");
+const path = require("path");
+const SteamAuth = require("node-steam-openid");
+const https = require("https");
+const http = require("http");
+const xmljs = require("xml-js");
+const js2xml = xmljs.js2xml;
+const xml2js = xmljs.xml2js;
+const axios = require("axios");
+const qs = require("qs");
+const geoip = require("geoip-lite");
+const discord = require('discord.js');
+const tls = require("tls");
+const { inflate } = require("zlib");
+const REST = discord.REST;
+const Routes = discord.Routes;
+const Client = discord.Client;
+const GatewayIntentBits = discord.GatewayIntentBits;
+const ActivityType = discord.ActivityType;
+const EmbedBuilder = discord.EmbedBuilder;
+const SlashCommandBuilder = discord.SlashCommandBuilder;
+const ButtonStyle = discord.ButtonStyle;
+const ButtonBuilder = discord.ButtonBuilder;
+const ActionRowBuilder = discord.ActionRowBuilder;
+const TextInputBuilder = discord.TextInputBuilder;
+const ModalBuilder = discord.ModalBuilder;
+const StringSelectMenuBuilder = discord.StringSelectMenuBuilder;
+const StringSelectMenuOptionBuilder = discord.StringSelectMenuOptionBuilder;
+const TextInputStyle = discord.TextInputStyle;
 
 // Load .env uuid key
 dotenv.config();
@@ -64,10 +80,131 @@ db.pragma('journal_mode = WAL');
 
 // Delete users table if wipe_on_start is true
 if(config.database.wipe_on_start)
+{
     db.exec("DROP TABLE users");
+    db.exec("DROP TABLE leaderboard_revived");
+    db.exec("DROP TABLE leaderboard_official");
+    db.exec("DROP TABLE leaderboard_event");
+}
 
 // Create users table if it doesn't exist
 db.exec("CREATE TABLE IF NOT EXISTS users (uuid TEXT PRIMARY KEY, ipaddr TEXT, inventory TEXT, data TEXT, steamid TEXT, steampersona TEXT, migrating BOOLEAN, migration_start_time INTEGER, credentials TEXT, ticket TEXT, deleting BOOLEAN, delete_start_time INTEGER, wbid TEXT, migrations INTEGER, persistent BOOLEAN, location TEXT, discordid TEXT)");
+
+// Create leaderboard_revived table if it doesn't exist
+db.exec("CREATE TABLE IF NOT EXISTS leaderboard_revived (uuid TEXT PRIMARY KEY, accountxp INTEGER, jokerxp INTEGER, banexp INTEGER, elitekillsonheros INTEGER, herokillsonelites INTEGER)");
+
+// Create leaderboard_official table if it doesn't exist
+db.exec("CREATE TABLE IF NOT EXISTS leaderboard_official (uuid TEXT PRIMARY KEY, accountxp INTEGER, jokerxp INTEGER, banexp INTEGER, elitekillsonheros INTEGER, herokillsonelites INTEGER)");
+
+// Create leaderboard_event table if it doesn't exist
+db.exec("CREATE TABLE IF NOT EXISTS leaderboard_event (uuid TEXT PRIMARY KEY, accountxp INTEGER, jokerxp INTEGER, banexp INTEGER, elitekillsonheros INTEGER, herokillsonelites INTEGER, eventname TEXT)");
+
+// Create leaderboard_popularskins table if it doesn't exist
+db.exec("CREATE TABLE IF NOT EXISTS leaderboard_popularskins (uuid TEXT PRIMARY KEY, gdskin INTEGER, rskin INTEGER)");
+
+// Create leaderboard_discordeventsubmissions table if it doesn't exist
+db.exec("CREATE TABLE IF NOT EXISTS leaderboard_discordeventsubmissions (discordid TEXT PRIMARY KEY, messageid TEXT, eventid TEXT, score TEXT, notes TEXT, submitterid TEXT, data TEXT)");
+
+// Clear leaderboard_event table if first eventname is not equal to config.event.name after config.event.end_time
+if(config.event.end_time < Date.now()) {
+    const prep = db.prepare("SELECT * FROM leaderboard_event");
+    const data = prep.get();
+    if(data && data.eventname != config.event.name) {
+        db.exec("DELETE FROM leaderboard_event");
+    }
+    // Set new end_time based on duration
+    config.event.end_time = Date.now() + config.event.duration;
+    // Save config
+    fse.writeFileSync("./usercfg/config.json", JSON.stringify(config, null, 4));
+}
+
+function LeaderboardTrackStats(uuid, data, type) {
+    // Clear revived, event, and skins for this uuid after migration
+    if(type == "official") {
+        db.prepare("DELETE FROM leaderboard_revived WHERE uuid = ?").run(uuid);
+        db.prepare("DELETE FROM leaderboard_event WHERE uuid = ?").run(uuid);
+        db.prepare("DELETE FROM leaderboard_popularskins WHERE uuid = ?").run(uuid);
+    }
+    const accountxp = data.AccountXP || 0;
+    const jokerxp = data.jokerXP || 0;
+    const banexp = data.baneXP || 0;
+    const elitekillsonheros = data.EliteKillsOnHeroes || 0;
+    const herokillsonelites = data.HeroKillsOnElites || 0;
+    let gdskin = 0;
+    let rskin = 0;
+    if(data.LocalCharAltMeshIndex && data.LocalCharAltMeshIndex.length >= 2) {
+        gdskin = data.LocalCharAltMeshIndex[0];
+        rskin = data.LocalCharAltMeshIndex[1];
+    }
+    // Don't update event leaderboard if event is over
+    let shouldUpdate = true;
+    if(type == "event" && config.event.end_time < Date.now())
+        shouldUpdate = false;
+    if(shouldUpdate) {
+        let database = `leaderboard_${type}`;
+        let prep = db.prepare(`INSERT OR REPLACE INTO ${database} (uuid, ${type == "popularskins" ? "gdskin, rskin" : "accountxp, jokerxp, banexp, elitekillsonheros, herokillsonelites"}${type == "event" ? ", eventname" : ""}) VALUES (?, ${type == "popularskins" ? "?, ?" : "?, ?, ?, ?, ?"}${type == "event" ? ", ?" : ""})`);
+        let opts = [
+            uuid,
+            type == "popularskins" ? gdskin : accountxp,
+            type == "popularskins" ? rskin : jokerxp,
+            type == "popularskins" ? null : banexp,
+            type == "popularskins" ? null : elitekillsonheros,
+            type == "popularskins" ? null : herokillsonelites
+        ];
+        if(type == "event") {
+            // opts should be appended, not replaced, redo it
+            let prep2 = db.prepare(`SELECT * FROM leaderboard_revived WHERE uuid = ?`);
+            let data2 = prep2.get(uuid);
+            if(data2) {
+                // Get difference between desired value and current revived value in database
+                opts[1] = accountxp - data2.accountxp;
+                opts[2] = jokerxp - data2.jokerxp;
+                opts[3] = banexp - data2.banexp;
+                opts[4] = elitekillsonheros - data2.elitekillsonheros;
+                opts[5] = herokillsonelites - data2.herokillsonelites;
+                // Get current event leaderboard data if it exists
+                prep2 = db.prepare(`SELECT * FROM leaderboard_event WHERE uuid = ?`);
+                data2 = prep2.get(uuid);
+                if(data2) {
+                    // Adding only new stats to the event leaderboard
+                    opts[1] += data2.accountxp;
+                    opts[2] += data2.jokerxp;
+                    opts[3] += data2.banexp;
+                    opts[4] += data2.elitekillsonheros;
+                    opts[5] += data2.herokillsonelites;
+                }
+            }
+            // Append event name
+            opts.push(config.event.name);
+        } else if(type == "revived") {
+            // Get current official leaderboard data if it exists
+            let prep2 = db.prepare(`SELECT * FROM leaderboard_official WHERE uuid = ?`);
+            let data2 = prep2.get(uuid);
+            if(data2) {
+                // Get difference between desired value and current official value in database
+                // We don't want the player's migrated stats to be added to the revived leaderboard
+                opts[1] = accountxp - data2.accountxp;
+                opts[2] = jokerxp - data2.jokerxp;
+                opts[3] = banexp - data2.banexp;
+                opts[4] = elitekillsonheros - data2.elitekillsonheros;
+                opts[5] = herokillsonelites - data2.herokillsonelites;
+            }
+        }
+        // Run the query
+        switch(type) {
+            case "official":
+            case "revived":
+                prep.run(opts[0], opts[1], opts[2], opts[3], opts[4], opts[5]);      
+                break;
+            case "event":
+                prep.run(opts[0], opts[1], opts[2], opts[3], opts[4], opts[5], opts[6]);
+                break;
+            case "popularskins":
+                prep.run(opts[0], opts[1], opts[2]);
+                break;
+        }
+    }
+}
 
 // Scheduled actions
 let scheduled_actions = [];
@@ -93,38 +230,136 @@ if(config.discord_bot.enabled) {
     rest = new REST({ version: '10' }).setToken(discordbottoken);
 
     // Build commands
-    const commands = new SlashCommandBuilder()
+    const commands = [new SlashCommandBuilder()
         .setName('invite')
-        .setDescription('Create an invite link for members to join your game.')
-        .addStringOption(option =>
-            option.setName('authserver')
-            .setDescription('The auth server you are using.')
-            .addChoices(
-                { name: 'Official', value: 'official' },
-                { name: 'Arkham: Revived', value: 'revived' },
-                { name: 'Unknown', value: 'unk' },
+            .setDescription('Create an invite link for members to join your game.')
+            .addSubcommand(subcommand => 
+                subcommand
+                .setName('linked')
+                    .setDescription('Automatically create an invite link from your linked account.')
+                .addStringOption(option =>
+                    option.setName('authserver')
+                        .setDescription('The auth server you are using.')
+                        .addChoices(
+                            { name: 'Official', value: 'official' },
+                            { name: 'Arkham: Revived', value: 'revived' },
+                            { name: 'Unknown', value: 'unk' }
+                        )
+                        .setRequired(true)
+                )
+                .addStringOption(option =>
+                    option.setName('lobbyname')
+                        .setDescription('An optional name for your invite.')
+                )
+                .addStringOption(option =>
+                    option.setName('map')
+                        .setDescription('Which map would you like to display?')
+                        .addChoices(
+                            { name: 'Any Map', value: 'any' },
+                            { name: 'Wayne Chemical Plant', value: 'mp_wcp' },
+                            { name: 'Blackgate Prison', value: 'mp_prison' },
+                            { name: 'Joker\'s Funhouse', value: 'mp_funhouse' },
+                            { name: 'Wonder City Robot Factory', value: 'mp_robotfactory' }
+                        )
+                )
             )
-            .setRequired(true)
-        )
-        .addStringOption(option =>
-            option.setName('lobbyname')
-            .setDescription('An optional name for your invite.')
-        )
-        .addStringOption(option =>
-            option.setName('map')
-            .setDescription('Which map would you like to display?')
-            .addChoices(
-                { name: 'Any Map', value: 'any' },
-                { name: 'Wayne Chemical Plant', value: 'mp_wcp' },
-                { name: 'Blackgate Prison', value: 'mp_prison' },
-                { name: 'Joker\'s Funhouse', value: 'mp_funhouse' },
-                { name: 'Wonder City Robot Factory', value: 'mp_robotfactory' },
-            )
-        );
+            .addSubcommand(subcommand =>
+                subcommand
+                .setName('uri')
+                .setDescription('Create an invite link with a Steam URI, from the Join Game button on your profile.')
+                .addStringOption(option =>
+                    option.setName('uri')
+                        .setDescription('The Steam URI to create an invite from.')
+                        .setRequired(true)
+                )
+                .addStringOption(option =>
+                    option.setName('authserver')
+                        .setDescription('The auth server you are using.')
+                        .addChoices(
+                            { name: 'Official', value: 'official' },
+                            { name: 'Arkham: Revived', value: 'revived' },
+                            { name: 'Unknown', value: 'unk' }
+                        )
+                        .setRequired(true)
+                )
+                .addStringOption(option =>
+                    option.setName('lobbyname')
+                        .setDescription('An optional name for your invite.')
+                )
+                .addStringOption(option =>
+                    option.setName('map')
+                        .setDescription('Which map would you like to display?')
+                        .addChoices(
+                            { name: 'Any Map', value: 'any' },
+                            { name: 'Wayne Chemical Plant', value: 'mp_wcp' },
+                            { name: 'Blackgate Prison', value: 'mp_prison' },
+                            { name: 'Joker\'s Funhouse', value: 'mp_funhouse' },
+                            { name: 'Wonder City Robot Factory', value: 'mp_robotfactory' }
+                        )
+                )
+            ),
+        new discord.ContextMenuCommandBuilder()
+            .setName('Submit Score')
+            .setType(discord.ApplicationCommandType.Message),
+        new SlashCommandBuilder()
+            .setName("deletescore")
+            .setDescription("Delete a score you have submitted.")
+            .addStringOption(option =>
+                option.setName('event')
+                    .setDescription('The event you are deleting a score from.')
+                    .setAutocomplete(true)
+                    .setRequired(true)),
+        new SlashCommandBuilder()
+        .setName("challengeleaderboard")
+            .setDescription("View the leaderboard for an event.")
+            .addStringOption(option =>
+                option.setName('event')
+                    .setDescription('The event you are viewing the leaderboard for.')
+                    .setAutocomplete(true)),
+        new SlashCommandBuilder()
+        .setName("startlobby")
+            .setDescription("Start a lobby to track stats.")
+            .addStringOption(option =>
+                option.setName('name')
+                    .setDescription('The name of your lobby. Users will be able to see this, if made public.')
+                    .setRequired(true))
+            .addStringOption(option =>
+                option.setName('player2')
+                    .setDescription('A link to the Steam profile of the second player in your lobby.'))
+            .addStringOption(option =>
+                option.setName('player3')
+                    .setDescription('A link to the Steam profile of the third player in your lobby.'))
+            .addStringOption(option =>
+                option.setName('player4')
+                    .setDescription('A link to the Steam profile of the fourth player in your lobby.'))
+            .addStringOption(option =>
+                option.setName('player5')
+                    .setDescription('A link to the Steam profile of the fifth player in your lobby.'))
+            .addStringOption(option =>
+                option.setName('player6')
+                    .setDescription('A link to the Steam profile of the sixth player in your lobby.'))
+            .addStringOption(option =>
+                option.setName('player7')
+                    .setDescription('A link to the Steam profile of the seventh player in your lobby.'))
+            .addStringOption(option =>
+                option.setName('player8')
+                    .setDescription('A link to the Steam profile of the eighth player in your lobby.')),
+        new SlashCommandBuilder()
+        .setName("endlobby")
+            .setDescription("End a lobby and save the stats.")
+            .addStringOption(option =>
+                option.setName('player1')
+                    .setDescription('The name of the first player in your lobby. This is only provided for reference.')
+                    .setRequired(true)
+                    .setAutocomplete(true))
+            .addStringOption(option =>
+                option.setName('team1')
+                    .setDescription('The team of the first player in your lobby.')
+                    .setRequired(true)
+                    .setAutocomplete(true))]
 
     // Generate MD5 of commands
-    const commands_json = commands.toJSON();
-    const commands_md5 = crypto.createHash("md5").update(JSON.stringify(commands_json)).digest("hex");
+    const commands_md5 = crypto.createHash("md5").update(commands.map(command => command.toJSON()).join()).digest("hex");
 
     // If commands_md5 does not match config commands_md5, reload Discord commands
     if(config.discord_bot.commands_md5 != commands_md5) {
@@ -135,7 +370,7 @@ if(config.discord_bot.enabled) {
         // Save config
         fse.writeFileSync("./usercfg/config.json", JSON.stringify(config, null, 4));
         // Reload commands
-        rest.put(Routes.applicationCommands(discordapplicationid), { body: [commands.toJSON()] })
+        rest.put(Routes.applicationCommands(discordapplicationid), { body: commands })
             .then(() => {
                 if(config.debug)
                     console.log('BOT: Reloaded application (/) commands')
@@ -169,86 +404,439 @@ if(config.discord_bot.enabled) {
         discord_client.user.setActivity(config.discord_bot.activity, { type: activity_type });
     });
 
+    // Forum post creation
+    discord_client.on('threadCreate', thread => {
+        if(thread.parent.type != discord.ChannelType.GuildForum)
+            return;
+        // Join forum post
+        thread.join();
+    });
     // Interaction
-    discord_client.on('interactionCreate', async interaction => {
-        if (!interaction.isChatInputCommand()) return;
-        switch(interaction.commandName)
-        {
-            case "ping":
-                await interaction.reply({ content: "Pong!" });
-                break;
-            case "invite":
-                // Reply with typing
-                const delayed = await interaction.deferReply();
-                // Get steamid by discordid
-                const prep = db.prepare("SELECT steamid FROM users WHERE discordid = ?");
-                const data = prep.get(interaction.user.id);
-                if(data && data.steamid) {
-                    const summaryurl = `http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${steamapikey}&steamids=${data.steamid}`;
-                    let response = await axios.get(summaryurl);
-                    if(response.data && response.data.response && response.data.response.players && response.data.response.players[0]) {
-                        const summary = response.data.response.players[0];
-                        if(summary.lobbysteamid !== undefined) {
-                            const inviteurl = `${config.host.https_enabled ? "https" : "http"}://${config.host.domain}${config.host.show_port ? ':' + (config.host.https_enabled ? config.host.https_port : config.host.http_port) : ""}/joinlobby?lobbyid=${summary.lobbysteamid}&steamid=${data.steamid}`;
-                            let embed = new EmbedBuilder()
-                                .setColor('#2196F3')
-                                .setTitle(`Join ${interaction.options.getString('lobbyname') ? "\"" + interaction.options.getString('lobbyname') + "\"" : interaction.user.globalName + '\'s Lobby'}`)
-                                .setFooter({
-                                    text: `Lobby ID: ${summary.lobbysteamid} • Steam ID: ${data.steamid}`,
-                                })
-                                .setAuthor({
-                                    name: `${summary.personaname}`,
-                                    iconURL: `${summary.avatarmedium}`,
-                                    url: `${summary.profileurl}`
-                                })
-                            let set_thumb = false;
-                            let description = "";
-                            if(interaction.options.getString('map')) {
-                                let map = interaction.options.getString('map');
-                                if(config.discord_bot.maps[map]) {
-                                    embed.setThumbnail(config.discord_bot.maps[map].thumbnail);
-                                    description = config.discord_bot.maps[map].name;
-                                    set_thumb = true;
+    discord_client.on('interactionCreate', interaction => {
+        if(interaction.isChatInputCommand()) {
+            switch(interaction.commandName)
+            {
+                case "invite":
+                    // Get subcommand
+                    const subcommand = interaction.options.getSubcommand(true);
+                    let lobbyid = "";
+                    let steamid = "";
+                    let mine = false;
+                    switch(subcommand)
+                    {
+                        case "linked":
+                            // Get steamid by discordid
+                            const prep = db.prepare("SELECT steamid FROM users WHERE discordid = ?");
+                            const data = prep.get(interaction.user.id);
+                            if(data && data.steamid) {
+                                steamid = data.steamid;
+                                const summaryurl = `http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${steamapikey}&steamids=${data.steamid}`;
+                                axios.get(summaryurl).then(response => {
+                                    if(response.data && response.data.response && response.data.response.players && response.data.response.players[0]) {
+                                        const summary = response.data.response.players[0];
+                                        if(summary.lobbysteamid !== undefined) {
+                                            lobbyid = summary.lobbysteamid;
+                                        } else {
+                                            interaction.reply({ content: `> <@${interaction.user.id}>, you are not in a lobby. Create a lobby in-game and try again.\n> Make sure you're set to online with a public Steam profile!\n> <https://arkham.kiwifruitdev.page/>`, ephemeral: true });
+                                        }
+                                    } else {
+                                        interaction.reply({ content: `> <@${interaction.user.id}>, an error occurred while fetching your Steam profile.\n> Make sure you're set to online with a public Steam profile!\n> <https://arkham.kiwifruitdev.page/>`, ephemeral: true });
+                                    }
+                                }).catch(error => {
+                                    interaction.reply({ content: `> <@${interaction.user.id}>, you are not linked to a Steam account.\n> You must link your Discord account from Arkham: Revived.\n> <https://arkham.kiwifruitdev.page/>`, ephemeral: true });
+                                });
+                            }
+                            mine = true;
+                            break;
+                        case "uri":
+                            // Get URI parameter
+                            const uri = interaction.options.getString('uri', true);
+                            // steam://joinlobby/209000/109775242328154226/76561199029547231
+                            // steam://joinlobby/209000/Lobby ID/Steam ID
+                            // Separate URI into parts
+                            const uriparts = uri.split('/');
+                            // Get lobbyid and steamid
+                            for(let i = 0; i < uriparts.length; i++) {
+                                if(uriparts[i] === "joinlobby") {
+                                    try {
+                                        lobbyid = uriparts[i + 1];
+                                        steamid = uriparts[i + 2];
+                                    }
+                                    catch(error) {
+                                        interaction.reply({ content: `> <@${interaction.user.id}>, an error occurred while parsing the Steam URI.\n> Make sure you're using a correct Steam URI!\n> <https://arkham.kiwifruitdev.page/>`, ephemeral: true });
+                                    }
+                                    break;
                                 }
                             }
-                            if(!set_thumb)
-                            {
-                                embed.setThumbnail(config.discord_bot.maps.any.thumbnail);
-                                description = config.discord_bot.maps.any.name;
-                            }
-                            const authserver = interaction.options.getString('authserver');
-                            let prettyserver = "Unknown";
-                            switch(authserver) {
-                                case "official":
-                                    prettyserver = "Official";
-                                    break;
-                                case "revived":
-                                    prettyserver = "Arkham: Revived";
-                                    break;
-                            }
-                            embed.setDescription(`Click [here](${inviteurl}) to launch the game and join the lobby.\n*Do not attempt to join your own lobby as a host.*`);
-                            embed.setFields([
-                                {
-                                    name: 'Map',
-                                    value: description,
-                                    inline: true
-                                },
-                                {
-                                    name: 'Auth Server',
-                                    value: prettyserver,
-                                    inline: true
-                                }
-                            ]);
-                            await delayed.edit({ content: "", embeds: [embed] });
-                        } else {
-                            await delayed.edit({ content: `<@${interaction.user.id}>, you are not in a lobby. Create a lobby in-game and try again.`, ephemeral: true });
-                        }
-                    } else {
-                        await delayed.edit({ content: `<@${interaction.user.id}>, an error occurred while fetching your Steam profile.`, ephemeral: true });
+                            break;
+                        default:
+                            interaction.reply({ content: `> <@${interaction.user.id}>, an error occurred while parsing the command.\n> Use a subcommand!\n> <https://arkham.kiwifruitdev.page/>`, ephemeral: true });
+                            return;
                     }
-                } else {
-                    await delayed.edit({ content: `<@${interaction.user.id}>, you are not linked to a Steam account. You must sign in at least once in-game before linking your Discord account.`, ephemeral: true });
-                }
+                    const inviteurl = `${config.host.https_enabled ? "https" : "http"}://${config.host.domain}${config.host.show_port ? ':' + (config.host.https_enabled ? config.host.https_port : config.host.http_port) : ""}/joinlobby?lobbyid=${lobbyid}&steamid=${steamid}`;
+                    let name = interaction.options.getString('lobbyname') ? "\"" + interaction.options.getString('lobbyname') + "\"" : interaction.user.globalName + '\'s Lobby';
+                    if(!mine)
+                        name = "Lobby";
+                    let embed = new EmbedBuilder()
+                        .setColor('#2196F3')
+                        .setTitle(`Join ${name}`)
+                        .setFooter({
+                            text: `Lobby ID: ${lobbyid} • Steam ID: ${steamid}`,
+                        })
+                        .setAuthor({
+                            name: `Steam Profile`,
+                            iconURL: `https://cdn.discordapp.com/attachments/228252957563420673/1111183905941360720/image.png`,
+                            url: `https://steamcommunity.com/profiles/${steamid}`,
+                        })
+                        let set_thumb = false;
+                        let description = "";
+                        if(interaction.options.getString('map')) {
+                            let map = interaction.options.getString('map');
+                            if(config.discord_bot.maps[map]) {
+                                embed.setThumbnail(config.discord_bot.maps[map].thumbnail);
+                                description = config.discord_bot.maps[map].name;
+                                set_thumb = true;
+                            }
+                        }
+                        if(!set_thumb)
+                        {
+                            embed.setThumbnail(config.discord_bot.maps.any.thumbnail);
+                            description = config.discord_bot.maps.any.name;
+                        }
+                        const authserver = interaction.options.getString('authserver');
+                        let prettyserver = "Unknown";
+                        switch(authserver) {
+                            case "official":
+                                prettyserver = "Official";
+                                break;
+                            case "revived":
+                                prettyserver = "Arkham: Revived";
+                                break;
+                        }
+                        embed.setDescription(`Click on the button to launch the game and join the lobby.\n*Do not attempt to join your own lobby as a host.*\n<https://arkham.kiwifruitdev.page/>`);
+                        embed.setFields([
+                            {
+                                name: 'Map',
+                                value: description,
+                                inline: true
+                            },
+                            {
+                                name: 'Auth Server',
+                                value: prettyserver,
+                                inline: true
+                            }
+                        ]);
+                        let button = new ButtonBuilder()
+                            .setStyle(ButtonStyle.Link)
+                            .setLabel("Join Lobby")
+                            .setURL(inviteurl);
+                        interaction.reply({ content: "", embeds: [embed], components: [new ActionRowBuilder().addComponents(button)] });
+                    break;
+                case "deletescore":
+                    // Get event name parameter
+                    let eventname = interaction.options.getString('event', true);
+                    // Get guild
+                    let guild = discord_client.guilds.cache.get(interaction.guildId);
+                    // Available?
+                    if(!guild || !guild.available) {
+                        interaction.reply({ content: `> <@${interaction.user.id}>, an error occurred while fetching the server.\n> Make sure the server is available!\n> <https://arkham.kiwifruitdev.page/>`, ephemeral: true });
+                        return;
+                    }
+                    // If event name ends with a parenthesis, there's a user id
+                    let userid = interaction.user.id;
+                    if(eventname.endsWith(")")) {
+                        // Get user id
+                        userid = eventname.substring(eventname.lastIndexOf("(") + 1, eventname.lastIndexOf(")"));
+                        // Get event name
+                        eventname = eventname.substring(0, eventname.lastIndexOf("("));
+                        // Space?
+                        if(eventname.endsWith(" "))
+                            eventname = eventname.substring(0, eventname.lastIndexOf(" "));
+                    }
+                    // Check if db entry exists
+                    let prep = db.prepare("SELECT * FROM leaderboard_discordeventsubmissions WHERE eventid = ? AND discordid = ?;");
+                    let result = prep.get(eventname, userid);
+                    if(!result) {
+                        interaction.reply({ content: `> <@${interaction.user.id}>, this event entry does not exist.`, ephemeral: true });
+                        return;
+                    }
+                    // Delete db entry
+                    prep = db.prepare("DELETE FROM leaderboard_discordeventsubmissions WHERE eventid = ? AND discordid = ?;");
+                    result = prep.run(eventname, userid);
+                    // Success
+                    interaction.reply({ content: `> <@${interaction.user.id}>, the event score for <@${userid}> has been deleted.`, ephemeral: true });
+                    break;
+                case "challengeleaderboard":
+                    // Get event name parameter
+                    eventname = interaction.options.getString('event', true);
+                    break;
+            }
+        } else if(interaction.isAutocomplete()) {
+            switch(interaction.commandName) {
+                case "deletescore":
+                    const focusedOption = interaction.options.getFocused(true);
+                    switch(focusedOption.name) {
+                        case "event":
+                            // Get guild
+                            let guild = discord_client.guilds.cache.get(interaction.guildId);
+                            let choices = [];
+                            // Available?
+                            if(guild && guild.available) {
+                                // Query database for events associated with this user
+                                let prep = db.prepare("SELECT * FROM leaderboard_discordeventsubmissions;");
+                                let results = prep.all();
+                                // Get events
+                                let events = Array.from(guild.scheduledEvents.cache.values());
+                                // Add event name and discordid to choices
+                                for(let i = 0; i < results.length; i++) {
+                                    // If not submitterid or discordid, skip
+                                    if(results[i].submitterid !== interaction.user.id && results[i].discordid !== interaction.user.id)
+                                        continue;
+                                    let me = true;
+                                    if(results[i].discordid !== interaction.user.id)
+                                        me = false;
+                                    choices.push({
+                                        name: `${results[i].eventid}${me ? "" : " (" + results[i].discordid + ")"}`,
+                                        value: `${results[i].eventid}${me ? "" : " (" + results[i].discordid + ")"}`,
+                                    });
+                                }
+                            }
+                            interaction.respond(choices);
+                            break;
+                    }
+                    break;
+            }
+        } else if(interaction.isContextMenuCommand()) {
+            switch(interaction.commandName) {
+                case "Submit Score":
+                    // Are they the author of the message?
+                    let admin = false;
+                    // If user has manage messages permissions, they can submit any challenge run
+                    if(interaction.member.permissions.has(discord.PermissionsBitField.Flags.ManageMessages))
+                        admin = true;
+                    if(interaction.targetMessage.author.id !== interaction.user.id && !admin) {
+                        interaction.reply({ content: `> <@${interaction.user.id}>, you can only submit challenge runs that you have posted.`, ephemeral: true });
+                        return;
+                    }
+                    // Does the message contain an attachment or embed?
+                    if(interaction.targetMessage.attachments.size === 0 && interaction.targetMessage.embeds.length === 0) {
+                        interaction.reply({ content: `> <@${interaction.user.id}>, you can only submit challenge runs that have an attachment or embed.`, ephemeral: true });
+                        return;
+                    }
+                    // Get server's name and icon
+                    let guild = discord_client.guilds.cache.get(interaction.guildId);
+                    // Available?
+                    if(!guild || !guild.available) {
+                        interaction.reply({ content: `> <@${interaction.user.id}>, an error occurred while fetching the server information.`, ephemeral: true });
+                        return;
+                    }
+                    // Get scheduled events in guild
+                    let events = Array.from(guild.scheduledEvents.cache.values());
+                    let emojis = [];
+                    // Get first emoji from each event name or description, fallback to trophy
+                    for(let i = 0; i < events.length; i++) {
+                        let found = events[i].name.match(/<a?:.+?:\d+>/);
+                        if(!found)
+                            found = events[i].description.match(/<a?:.+?:\d+>/);
+                        if(found)
+                            emojis.push(found[0]);
+                        else
+                            emojis.push("🏆");
+                    }
+                    if(events.length > 0) {
+                        // Ask which event with string select component
+                        let select = new StringSelectMenuBuilder()
+                            .setCustomId("submitchallengeeventselect")
+                            .setPlaceholder("Select an event...")
+                        let options = [];
+                        for(let i = 0; i < events.length; i++) {
+                            let description = events[i].description;
+                            // Trim and add ellipsis if too long
+                            if(description.length > 97)
+                                description = description.substring(0, 97) + "...";
+                            options.push(new StringSelectMenuOptionBuilder()
+                                .setLabel(events[i].name)
+                                .setDescription(description)
+                                .setValue(events[i].name.toLowerCase().replace(/ /g, "_"))
+                                .setEmoji(emojis[i]));
+                        }
+                        select.addOptions(options);
+                        // Send message
+                        interaction.reply({ content: "", ephemeral: true, embeds: [new EmbedBuilder()
+                            .setColor('#2196F3')
+                            .setTitle("Submit a Challenge Run")
+                            .setDescription(`Select an event to submit a challenge run for.`)
+                            .setAuthor({
+                                name: interaction.targetMessage.author.displayName,
+                                iconURL: interaction.targetMessage.author.avatarURL(),
+                            })
+                            .setFooter({
+                                text: `Message ID: ${interaction.targetMessage.id} • User ID: ${interaction.targetMessage.author.id}`
+                            })],
+                            components: [new ActionRowBuilder().addComponents(select)]
+                        });
+                    } else {
+                        interaction.reply({ content: `> <@${interaction.user.id}>, there are no scheduled events in this server.`, ephemeral: true });
+                    }
+                    break;
+            }
+        } else if(interaction.isStringSelectMenu()) {
+            switch(interaction.customId) {
+                case "submitchallengeeventselect":
+                    let event = interaction.values[0];
+                    // Is this a valid ongoing event?
+                    let guild = discord_client.guilds.cache.get(interaction.guildId);
+                    // Available?
+                    if(!guild || !guild.available) {
+                        interaction.reply({ content: `> <@${interaction.user.id}>, an error occurred while fetching the server information.`, ephemeral: true });
+                        return;
+                    }
+                    let events = Array.from(guild.scheduledEvents.cache.values());
+                    let eventnames = [];
+                    for(let i = 0; i < events.length; i++)
+                        eventnames.push(events[i].name.toLowerCase().replace(/ /g, "_"));
+                    const index = eventnames.indexOf(event);
+                    // If index is > -1, event is valid
+                    if(index > -1) {
+                        let emoji = "🏆";
+                        // Get first emoji from each event name or description, fallback to trophy
+                        let found = events[index].name.match(/<a?:.+?:\d+>/);
+                        if(!found)
+                            found = events[index].description.match(/<a?:.+?:\d+>/);
+                        if(found)
+                            emojis = found[0];
+                        // Show user modal
+                        let modal = new ModalBuilder()
+                            .setCustomId("submitchallengeeventmodal")
+                            .setTitle("Submit a Challenge Run");
+                        // Add fields
+                        let secondActionRow = new ActionRowBuilder()
+                            .addComponents(new TextInputBuilder()
+                                .setLabel("Score")
+                                .setCustomId("submitchallengescore")
+                                .setRequired(true)
+                                .setPlaceholder("(Time, Points, etc.)")
+                                .setStyle(TextInputStyle.Short));
+                        let thirdActionRow = new ActionRowBuilder()
+                            .addComponents(new TextInputBuilder()
+                                .setLabel("Notes")
+                                .setCustomId("submitchallengenotes")
+                                .setPlaceholder("(Optional)")
+                                .setRequired(false)
+                                .setStyle(TextInputStyle.Paragraph));
+                        modal.addComponents(secondActionRow, thirdActionRow);
+                        let description = events[index].description;
+                        // Trim and add ellipsis if too long
+                        if(description.length > 97)
+                            description = description.substring(0, 97) + "...";
+                        // Update interaction
+                        interaction.showModal(modal).then(() => {
+                            interaction.editReply({
+                                components: [new ActionRowBuilder().addComponents(new StringSelectMenuBuilder()
+                                    .setCustomId("submitchallengeeventselect")
+                                    .setPlaceholder("Select an event...")
+                                    .addOptions([new StringSelectMenuOptionBuilder()
+                                        .setLabel(events[index].name)
+                                        .setDescription(description)
+                                        .setValue(events[index].name.toLowerCase().replace(/ /g, "_"))
+                                        .setEmoji(emoji)
+                                        .setDefault(true)
+                                    ]).setDisabled(true))]
+                            });
+                        });
+                    } else {
+                        interaction.reply({ content: `> <@${interaction.user.id}>, an error occurred while fetching the event information.`, ephemeral: true });
+                    }
+                    break;
+            }
+        } else if(interaction.isModalSubmit()) {
+            switch(interaction.customId) {
+                case "submitchallengeeventmodal":
+                    const message = interaction.message;
+                    if(!message) {
+                        interaction.reply({ content: `> <@${interaction.user.id}>, an error occurred while fetching the message information.`, ephemeral: true });
+                        return;
+                    }
+                    if(message.embeds.length < 1) {
+                        interaction.reply({ content: `> <@${interaction.user.id}>, an error occurred while fetching the message information.`, ephemeral: true });
+                        return;
+                    }
+                    if(message.components.length < 1) {
+                        interaction.reply({ content: `> <@${interaction.user.id}>, an error occurred while fetching the message information.`, ephemeral: true });
+                        return;
+                    }
+                    let originalmessageid = message.embeds[0].footer.text.match(/Message ID: (\d+)/);
+                    if(!originalmessageid) {
+                        interaction.reply({ content: `> <@${interaction.user.id}>, an error occurred while fetching the message information.`, ephemeral: true });
+                        return;
+                    }
+                    // Get event name
+                    let eventname = message.components[0].components[0].options[0].label;
+                    // Get guild
+                    let guild = discord_client.guilds.cache.get(interaction.guildId);
+                    // Available?
+                    if(!guild || !guild.available) {
+                        interaction.reply({ content: `> <@${interaction.user.id}>, an error occurred while fetching the server information.`, ephemeral: true });
+                        return;
+                    }
+                    // Get original message
+                    let originalmessage = guild.channels.cache.get(interaction.channelId).messages.cache.get(originalmessageid[1]);
+                    // Available?
+                    if(!originalmessage) {
+                        interaction.reply({ content: `> <@${interaction.user.id}>, an error occurred while fetching the message information.`, ephemeral: true });
+                        return;
+                    }
+                    // Get event
+                    let events = Array.from(guild.scheduledEvents.cache.values());
+                    let event = events.find(e => e.name === eventname);
+                    // If event is valid
+                    if(event) {
+                        // Get score
+                        let score = interaction.fields.getField("submitchallengescore").value;
+                        // Get notes
+                        let notes = interaction.fields.getField("submitchallengenotes").value;
+                        // Get user
+                        let user = guild.members.cache.get(interaction.user.id);
+                        // Available?
+                        if(!user) {
+                            interaction.reply({ content: `> <@${interaction.user.id}>, an error occurred while fetching the user information.`, ephemeral: true });
+                            return;
+                        }
+                        // Already exists in database?
+                        let prep = db.prepare("SELECT * FROM leaderboard_discordeventsubmissions WHERE discordid = ? AND eventid = ?");
+                        let result = prep.get(originalmessage.author.id, event.name);
+                        if(result) {
+                            // Replace in database
+                            prep = db.prepare("UPDATE leaderboard_discordeventsubmissions SET score = ?, notes = ?, messageid = ? WHERE discordid = ? AND eventid = ?");
+                            prep.run(score, notes, originalmessage.id, originalmessage.author.id, event.name);
+                        } else {
+                            // Add to database
+                            prep = db.prepare("INSERT INTO leaderboard_discordeventsubmissions (discordid, messageid, eventid, score, notes, submitterid) VALUES (?, ?, ?, ?, ?, ?)");
+                            prep.run(originalmessage.author.id, originalmessage.id, event.name, score, notes, user.id);
+                        }
+                        // Send reply
+                        interaction.reply({ephemeral: true, embeds: [new EmbedBuilder()
+                            .setColor('#2196F3')
+                            .setAuthor({
+                                name:  originalmessage.author.displayName,
+                                iconURL: originalmessage.author.avatarURL()
+                            })
+                            .setTitle(`Challenge Run Submission`)
+                            .setDescription(`You have successfully submitted a challenge run.`)
+                            .addFields(
+                                { name: 'Event', value: event.name, inline: true },
+                                { name: 'Score', value: score, inline: true},
+                                { name: 'Notes', value: notes ? notes : "None", inline: true}
+                            )
+                            .setFooter({
+                                text: `Message ID: ${originalmessage.id} • User ID: ${message.author.id}`,
+                            })
+                        ]});
+                    } else {
+                        interaction.reply({ content: `> <@${interaction.user.id}>, an error occurred while fetching the event information.`, ephemeral: true });
+                    }
+                    break;
+            }
         }
     });
 
@@ -392,11 +980,75 @@ app.get("/store/catalog/general", function(req, res) {
     console.log(`CATALOG: ${uuid}`);
     // Build JSON response
     let response = JSON.stringify(catalog);
-    response = response.replace(/%STEAM_NAME%/g, steamname.toUpperCase());
+    response = response.replace(/%STEAM_NAME%/g, steamname);
     response = response.replace(/%STEAM_ID%/g, steamid);
     response = response.replace(/%DISCORD_ID%/g, discordid);
+    let jsonresponse = JSON.parse(response);
+    // Pull leaderboards: Fake store items will store every player's stats
+    let fakeitems = [];
+    let fakeitemref = {
+        "category": "Unnamed",
+        "info": {},
+        "name": "",
+        "video_url": "",
+        "data": {
+          "gangland_sort_index": "12",
+          "gangland_effect_type": "8",
+          "gangland_effect_amount": "0.12",
+          "gangland_is_consumable": "1"
+        },
+        "flags": 2,
+        "icon_url": "",
+        "category_id": "86ca8986-94a4-57f0-9287-40b7ac4bebc1",
+        "type": 0,
+        "id": "",
+        "description": ""
+    };
+    // accountxp jokerxp banexp elitekillsonheros herokillsonelites
+    let descriptionref = "%DATABASE% stats:\r\n\r\nSteam ID: %STEAM_ID%\r\nAccount XP: %XP%\r\nJoker XP: %JOKER_XP%\r\nBane XP: %BANE_XP%\r\nElite Kills on Heroes: %ELITE_KILLS_ON_HEROES%\r\nHero Kills on Elites: %HERO_KILLS_ON_ELITES%";
+    let databases = ["revived", "official", "event"];
+    const prep = db.prepare(`SELECT * FROM users`);
+    const users = prep.all();
+    for(let i = 0; i < databases.length; i++) {
+        const prep2 = db.prepare(`SELECT * FROM leaderboard_${databases[i]}`);
+        const leaderboard = prep2.all();
+        for(let j = 0; j < leaderboard.length; j++) {
+            // Parse UUID
+            const account = users.find(user => user.uuid === leaderboard[j].uuid);
+            if(account) {
+                // Parse description
+                let description = descriptionref;
+                // Capitalize first letter of database name
+                description = description.replace(/%DATABASE%/g, databases[i].charAt(0).toUpperCase() + databases[i].slice(1));
+                description = description.replace(/%STEAM_ID%/g, account.steamid);
+                description = description.replace(/%XP%/g, leaderboard[j].accountxp);
+                description = description.replace(/%JOKER_XP%/g, leaderboard[j].jokerxp);
+                description = description.replace(/%BANE_XP%/g, leaderboard[j].banexp);
+                description = description.replace(/%ELITE_KILLS_ON_HEROES%/g, leaderboard[j].elitekillsonheros);
+                description = description.replace(/%HERO_KILLS_ON_ELITES%/g, leaderboard[j].herokillsonelites);
+                // Append event name if database is "event"
+                if(databases[i] == "event")
+                    description += `\r\nEvent: ${leaderboard[j].eventname}`;
+                // Get position when sorting by accountxp
+                let position = 1; // 1st place
+                for(let k = 0; k < leaderboard.length; k++) {
+                    if(leaderboard[k].accountxp > leaderboard[j].accountxp)
+                        position++; // Increment position
+                }
+                // Parse fake item
+                let fakeitem = JSON.parse(JSON.stringify(fakeitemref));
+                fakeitem.name = `${position}. ${account.steampersona} (${databases[i].charAt(0).toUpperCase() + databases[i].slice(1)})`;
+                fakeitem.id = `${account.uuid}-${databases[i]}`; // This is valid, the game does not parse UUIDs
+                fakeitem.description = description;
+                fakeitem.icon_url = account.steamavatar;
+                fakeitems.push(fakeitem);
+            }
+        }
+    }
+    // Add fake items to response
+    jsonresponse.items = Object.assign(jsonresponse.items, fakeitems);
     // Send response
-    res.json(JSON.parse(response));
+    res.json(jsonresponse);
 });
 
 // Endpoint: /store/offers
@@ -533,13 +1185,28 @@ function Transaction(req, res) {
         }
     }
     // Log UUID
-    console.log(`VOUCHER: ${uuid} (${ipaddr})`);
+    console.log(`VOUCHER: ${req.params.transactionid} (${uuid} ${ipaddr})`);
     const unlocks = {
         "items": {},
     };
     let replace = true;
     try {
         switch(req.params.transactionid) {
+            case "d7482553-7c71-41a0-8db1-ab272089bd89":
+                // Your steam stats
+                // Get leaderboards
+                const leaderboards = ["revived", "official", "event"];
+                for(let i = 0; i < leaderboards.length; i++) {
+                    const prep = db.prepare(`SELECT * FROM leaderboard_${leaderboards[i]}`);
+                    const data = prep.all();
+                    // Sort by accountxp
+                    data.sort(function(a, b) {
+                        return b.accountxp - a.accountxp;
+                    });
+                    // Add to unlocks
+                    unlocks.items[`${uuid}-${leaderboards[i]}`] = 1;
+                }
+                break;
             case "2f93daeb-d68f-4b28-80f4-ace882587a13":
                 // Assortment of consumables
                 let consumables = [];
@@ -907,6 +1574,9 @@ app.put("/users/:uuid/:subpage?/:subpage2?", function(req, res) {
             // Update database
             const updateprep = db.prepare("UPDATE users SET data = ? WHERE uuid = ?");
             updateprep.run(JSON.stringify(req.body), uuid);
+            // Track stats
+            LeaderboardTrackStats(uuid, req.body.data, "revived");
+            //LeaderboardTrackStats(uuid, req.body.data, "popularskins");
         } else {
             // unimplemented, print out
             console.log(`Unimplemented endpoint: ${req.url}`);
@@ -923,26 +1593,27 @@ app.put("/users/:uuid/:subpage?/:subpage2?", function(req, res) {
 // Unknown...
 
 // Account creation
-app.get("/auth/landing", async (req, res) => {
+app.get("/auth/landing", (req, res) => {
     try {
-        const user = await steam.authenticate(req);
-        const steamid = user.steamid;
-        const steampersona = user.username;
-        // Get existing uuid for steamid
-        let loggedin = false;
-        let lastwbid = "";
-        let lastlocation = "Unknown";
-        let persistent = false;
-        let prep = db.prepare("SELECT * FROM users WHERE steamid = ?");
-        let data = prep.get(steamid);
-        if(data && data.uuid) {
-            loggedin = true;
-            // Get last WBID connected to this account and its IP address
-            lastwbid = `&wbid=${data.wbid}`;
-            persistent = data.persistent;
-            lastlocation = data.location;
-        }
-        res.redirect(`/landing.html?avatar=${user.avatar.large}&persona=${user.username}&steamid=${user.steamid}&loggedin=${loggedin}${lastwbid}&lastlocation=${lastlocation}&persistent=${persistent}`);
+        steam.authenticate(req).then(user => {
+            const steamid = user.steamid;
+            const steampersona = user.username;
+            // Get existing uuid for steamid
+            let loggedin = false;
+            let lastwbid = "";
+            let lastlocation = "Unknown";
+            let persistent = false;
+            let prep = db.prepare("SELECT * FROM users WHERE steamid = ?");
+            let data = prep.get(steamid);
+            if(data && data.wbid) {
+                loggedin = true;
+                // Get last WBID connected to this account and its IP address
+                lastwbid = `&wbid=${data.wbid}`;
+                persistent = data.persistent;
+                lastlocation = data.location;
+            }
+            res.redirect(`/landing.html?avatar=${user.avatar.large}&persona=${user.username}&steamid=${user.steamid}&loggedin=${loggedin}${lastwbid}&lastlocation=${lastlocation}&persistent=${persistent}`);
+        });
     } catch (error) {
         console.error(error);
         const message = "Steam authentication failed.";
@@ -951,26 +1622,27 @@ app.get("/auth/landing", async (req, res) => {
 });
 
 // Account deletion
-app.get("/auth/delete", async (req, res) => {
+app.get("/auth/delete", (req, res) => {
     let message;
     try {
-        const user = await steamdelete.authenticate(req);
-        const steamid = user.steamid;
-        // Get existing uuid for steamid
-        const prep = db.prepare("SELECT uuid FROM users WHERE steamid = ?");
-        const data = prep.get(steamid);
-        if(data && data.uuid) {
-            // Delete user
-            const deleteprep = db.prepare("DELETE FROM users WHERE uuid = ?");
-            deleteprep.run(data.uuid);
-            console.log(`USER: ${user.steamid} - DELETED`);
-            res.redirect(`/deleted.html?avatar=${user.avatar.large}`);
-        } else {
-            // User doesn't exist
-            console.log(`USER: ${user.steamid} - NOT FOUND`);
-            message = "User not found.";
-            res.redirect(`/error.html?error=${message}`);
-        }
+        steamdelete.authenticate(req).then(user => {
+            const steamid = user.steamid;
+            // Get existing uuid for steamid
+            const prep = db.prepare("SELECT uuid FROM users WHERE steamid = ?");
+            const data = prep.get(steamid);
+            if(data && data.uuid) {
+                // Delete user
+                const deleteprep = db.prepare("DELETE FROM users WHERE uuid = ?");
+                deleteprep.run(data.uuid);
+                console.log(`USER: ${user.steamid} - DELETED`);
+                res.redirect(`/deleted.html?avatar=${user.avatar.large}`);
+            } else {
+                // User doesn't exist
+                console.log(`USER: ${user.steamid} - NOT FOUND`);
+                message = "User not found.";
+                res.redirect(`/error.html?error=${message}`);
+            }
+        });
     } catch (error) {
         console.error(error);
         message = "Steam authentication failed.";
@@ -979,13 +1651,13 @@ app.get("/auth/delete", async (req, res) => {
 });
 
 // Discord account linkage
-app.get("/auth/discord", async (req, res) => {
+app.get("/auth/discord", (req, res) => {
     // Redirect to Discord
     res.redirect(`https://discord.com/api/oauth2/authorize?client_id=${discordapplicationid}&redirect_uri=${config.host.https_enabled ? "https" : "http"}://${config.host.domain}${config.host.show_port ? ':' + (config.host.https_enabled ? config.host.https_port : config.host.http_port) : ""}/auth/discord/callback&response_type=code&scope=identify connections`);
 });
 
 // Discord account linkage callback
-app.get("/auth/discord/callback", async (req, res) => {
+app.get("/auth/discord/callback", (req, res) => {
     if(req.query.code !== undefined) {
         // Get URL param code
         const code = req.query.code;
@@ -996,7 +1668,19 @@ app.get("/auth/discord/callback", async (req, res) => {
         params.append("client_secret", discordapplicationsecret);
         params.append("grant_type", "authorization_code");
         params.append("code", code);
-        params.append("redirect_uri", `${config.host.https_enabled ? "https" : "http"}://${config.host.domain}${config.host.show_port ? ':' + (config.host.https_enabled ? config.host.https_port : config.host.http_port) : ""}/auth/discord/callback`);
+        let domain = `${config.host.https_enabled ? "https" : "http"}://${config.host.domain}${config.host.show_port ? ':' + (config.host.https_enabled ? config.host.https_port : config.host.http_port) : ""}/auth/discord/callback`;
+        // if localhost, use localhost
+        let ipaddr = req.socket.remoteAddress;
+        ipaddr = ipaddr.replace("::ffff:", "");
+        ipaddr = ipaddr.replace("::1", "127.0.0.1");
+        if(ipaddr === "127.0.0.1") {
+            domain = domain.replace(config.host.domain, "localhost").replace(config.host.https_enabled ? config.host.https_port : config.host.http_port, config.host.localhost_passthrough_port);
+            if(!config.host.show_port)
+                domain = domain.replace("localhost", "localhost:" + config.host.localhost_passthrough_port);
+            if(config.host.https_enabled)
+                domain = domain.replace("https", "http");
+        }
+        params.append("redirect_uri", domain);
         params.append("scope", "identify connections");
         axios.post("https://discord.com/api/oauth2/token", params, {
             headers: {
@@ -1030,31 +1714,47 @@ app.get("/auth/discord/callback", async (req, res) => {
                             const updateprep = db.prepare("UPDATE users SET discordid = ? WHERE uuid = ?");
                             updateprep.run(userid, data.uuid);
                             console.log(`USER: ${connection.id} - DISCORD LINKED TO ${userid}`);
-                            res.redirect(`/discord-linked.html?avatar=${avatar}&persona=${username}&discordid=${userid}&steamid=${connection.id}`);
                         } else {
-                            // User doesn't exist
-                            console.log(`USER: ${connection.id} - NOT FOUND`);
-                            const message = "User not found.";
-                            const realerror = "Please log in with the game at least once.";
-                            res.redirect(`/error.html?error=${message}&realerror=${realerror}`);
+                            // User doesn't exist, create a dummy user
+                            const uuid = crypto.randomUUID();
+                            const insertprep = db.prepare("INSERT INTO users (uuid, steamid, discordid) VALUES (?, ?, ?)");
+                            insertprep.run(uuid, connection.id, userid);
+                            console.log(`USER: ${connection.id} - DISCORD LINKED TO ${userid}`);
+                        }
+                        res.redirect(`/discord-linked.html?avatar=${avatar}&persona=${username}&discordid=${userid}&steamid=${connection.id}`);
+                        // Add discordgrantrole to guildmember
+                        for(let i = 0; i < config.discord_bot.role_grants.length; i++) {
+                            try {
+                                discord_client.guilds.fetch(config.discord_bot.role_grants[i].guild).then((guild) => {
+                                    guild.roles.fetch(config.discord_bot.role_grants[i].role).then((role) => {
+                                        guild.members.fetch(userid).then((member) => {
+                                            member.roles.add(role);
+                                        });
+                                    });
+                                });
+                            } catch (error) {
+                                continue;
+                            }
                         }
                     })
                 }).catch((error) => {
-                    console.error(error);
                     const message = "Discord authentication failed. Is your Steam account connected inside Discord?";
                     res.redirect(`/error.html?error=${message}&realerror=${error}`);
                 });
             });
         }).catch((error) => {
-            console.error(error);
             const message = "Discord authentication failed. Is your Steam account connected inside Discord?";
-            res.redirect(`/error.html?error=${message}&realerror=${error}`);
+            res.redirect(`/error.html?error=${message}&realerror=${error.response.data.error_description}`);
         });
+    } else {
+        const message = "Discord authentication failed. Is your Steam account connected inside Discord?";
+        const error = "No code provided";
+        res.redirect(`/error.html?error=${message}&realerror=${error}`);
     }
 });
 
 // Request persistence
-app.get("/persistence", async (req, res) => {
+app.get("/persistence", (req, res) => {
     // Get URL params steamid and persistent
     const steamid = req.query.steamid;
     const persistent = req.query.persistent;
@@ -1082,19 +1782,21 @@ app.get("/persistence", async (req, res) => {
 });
 
 // Steam OpenID
-app.get("/auth", async (req, res) => {
-    const redirectUrl = await steam.getRedirectUrl();
-    res.redirect(redirectUrl);
+app.get("/auth", (req, res) => {
+    steam.getRedirectUrl().then(redirectUrl => {
+        res.redirect(redirectUrl);
+    });
 });
 
 // Request deletion
-app.get("/delete", async (req, res) => {
-    let redirectUrl = await steamdelete.getRedirectUrl();
-    res.redirect(redirectUrl);
+app.get("/delete", (req, res) => {
+    steamdelete.getRedirectUrl().then(redirectUrl => {
+        res.redirect(redirectUrl);
+    });
 });
 
 // Join lobby redirect
-app.get("/joinlobby", async (req, res) => {
+app.get("/joinlobby", (req, res) => {
     // Get URL params lobbyid and steamid
     const lobbyid = req.query.lobbyid;
     const steamid = req.query.steamid;
@@ -1385,9 +2087,26 @@ if(!config.host.https_enabled) {
 } else {
     server = https.createServer({
         key: fse.readFileSync(`./usercfg/${config.host.https_key}`),
-        cert: fse.readFileSync(`./usercfg/${config.host.https_cert}`)
+        cert: fse.readFileSync(`./usercfg/${config.host.https_cert}`),
     }, app).listen(config.host.https_port, () => {
         done();
+    });
+    server.on("tlsClientError", err => {
+        if(config.debug) {
+            console.error(err);
+        }
+    });
+    server.on("connection", socket => {
+        socket.on("error", err => {
+            if(config.debug) {
+                console.error(err);
+            }
+        });
+        socket.on("data", data => {
+            if(config.debug) {
+                console.log(`WEB: TLS read ${data.length} bytes`);
+            }
+        });
     });
 }
 if(config.host.localhost_passthrough_enabled) {
@@ -1507,7 +2226,7 @@ const scheduled_actions_interval = setInterval(() => {
                                 // Response is a JSON object with user save data, combine with persistent migration save
                                 let usersave = CombineSaveData(res.data, persistentmigrationsave);
                                 // Get migration count
-                                prep = db.prepare("SELECT migrations FROM users WHERE uuid = ?");
+                                prep = db.prepare("SELECT * FROM users WHERE uuid = ?");
                                 data = prep.get(scheduled_actions[i].uuid);
                                 let migration_count = 1;
                                 // Increment migration count
@@ -1519,6 +2238,8 @@ const scheduled_actions_interval = setInterval(() => {
                                 data = prep.run(JSON.stringify(usersave), migration_count, scheduled_actions[i].uuid);
                                 // Log
                                 console.log(`MIGRATE: ${scheduled_actions[i].uuid}`);
+                                // Track stats
+                                LeaderboardTrackStats(scheduled_actions[i].uuid, data.body, "official");
                                 // Delete action
                                 scheduled_actions.splice(i, 1);
                             }).catch((err) => {
@@ -1550,10 +2271,55 @@ const scheduled_actions_interval = setInterval(() => {
                     });
                     break;
                 case "delete":
+                    // Unlink discordid if present
+                    let timeout = 0;
+                    if(config.discord_bot.enabled) {
+                        prep = db.prepare("SELECT discordid FROM users WHERE uuid = ?");
+                        data = prep.get(scheduled_actions[i].uuid);
+                        if(data.discordid != null) {
+                            // Unlink
+                            for(let i = 0; i < config.discord_bot.role_grants.length; i++) {
+                                try {
+                                    discord_client.guilds.fetch(config.discord_bot.role_grants[i].guild).then((guild) => {
+                                        guild.members.fetch(data.discordid).then((member) => {
+                                            guild.roles.fetch(config.discord_bot.role_grants[i].role).then((role) => {
+                                                member.roles.remove(role).then(() => {
+                                                    // Log
+                                                    console.log(`UNLINK: ${scheduled_actions[i].uuid} - ${data.discordid}`);
+                                                }).catch((err) => {
+                                                    // Log
+                                                    console.log(`UNLINK FAIL: ${scheduled_actions[i].uuid} - ${data.discordid}`);
+                                                    console.log(err);
+                                                });
+                                            }).catch((err) => {
+                                                console.log(`UNLINK FAIL: ${scheduled_actions[i].uuid} - ${data.discordid}`);
+                                                console.log(err);
+                                            });
+                                        }).catch((err) => {
+                                            // Log
+                                            console.log(`UNLINK FAIL: ${scheduled_actions[i].uuid} - ${data.discordid}`);
+                                            console.log(err);
+                                        });
+                                    }).catch((err) => {
+                                        // Log
+                                        console.log(`UNLINK FAIL: ${scheduled_actions[i].uuid} - ${data.discordid}`);
+                                        console.log(err);
+                                    });
+                                } catch(err) {
+                                    // Log
+                                    console.log(`UNLINK FAIL: ${scheduled_actions[i].uuid} - ${data.discordid}`);
+                                    console.log(err);
+                                }
+                            }
+                            timeout = 10000; // 10 seconds
+                        }
+                    }
                     // Delete account
-                    prep = db.prepare("DELETE FROM users WHERE uuid = ?");
-                    data = prep.run(scheduled_actions[i].uuid);
-                    console.log(`DELETE: ${scheduled_actions[i].uuid}`);
+                    setTimeout(() => {
+                        prep = db.prepare("DELETE FROM users WHERE uuid = ?");
+                        data = prep.run(scheduled_actions[i].uuid);
+                        console.log(`DELETE: ${scheduled_actions[i].uuid}`);
+                    }, timeout);
                     // Delete action
                     scheduled_actions.splice(i, 1);
                     break;

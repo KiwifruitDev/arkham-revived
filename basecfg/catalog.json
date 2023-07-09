@@ -2944,7 +2944,7 @@
       "24d120f9-8b68-47c9-8f17-28e1022c6007": {
         "category": "Unnamed",
         "info": {},
-        "name": "== %STEAM_NAME% ==",
+        "name": "%STEAM_NAME% - Stats",
         "video_url": "",
         "data": {
           "icon": "store_case"

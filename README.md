@@ -6,7 +6,7 @@ A custom authentication server for Batman: Arkham Origins Online.
 
 Supports user authentication, saving of player data, linkage to Steam and Discord accounts, and Discord game invite generation.
 
-Join the [Discord](https://discord.gg/6Sab2tbauC) for support, updates, and matchmaking.
+Join the [Discord](https://discord.gg/rrwWcy82fr) for support, updates, and matchmaking.
 
 ## Usage
 
@@ -35,10 +35,10 @@ Follow these steps in order to play on Arkham: Revived.
 
     ```ini
     [GDHttp]
-    BaseUrl="https://arkham.kiwifruitdev.page/"
+    BaseUrl="http://[Source IP Address]:8385/"
     EchoBaseURL="http://in.echo.fireteam.net/"
     WBIDTicketURL="https://tokenservice.psn.turbine.com/TokenService"
-    WBIDAMSURL="https://arkham.kiwifruitdev.page/CLS"
+    WBIDAMSURL="http://[Source IP Address]:8385/CLS"
     ClientId="0938aa7a-6682-4b90-a97d-90becbddb9ce"
     ClientIdSP="6ca97b4e-d278-48a4-8b66-80468447a513"
     ClientSecret="GXnNQaRSuxaxlm6uR35HVk39u"
@@ -49,13 +49,18 @@ Follow these steps in order to play on Arkham: Revived.
     ```
 
     - Note: The `BaseUrl` and `WBIDAMSURL` values are the only ones that need to be changed.
+    - You must obtain the source IP address of the server you're connecting to. This is usually found in the "Getting Started" section of the server's website.
 
 5. Save the file and close it. This will allow the game to connect to Arkham: Revived.
-6. Launch the game and make sure you've reached the main menu.
-7. Close the game and re-launch it. This will ensure your account is linked to Steam.
-8. Launch the game and click on **Store** in the main menu.
-9. If your account was linked successfully, your display name will be shown as a store item.
-10. You're now ready to play!
+6. Locate `SHARED.SWP` in your Steam Cloud storage directory. This is usually found in `C:\Program Files (x86)\Steam\userdata\[User ID]\209000\remote`.
+    - You may obtain your user ID from [here](https://steamid.io/) as `steamID3`, removing the `[U:1` and `]` from the start and end of the ID respectively.
+    - `209000` is the appid for Batman: Arkham Origins.
+    - It is required to delete this file in order to unlink your WBID, as Arkham: Revived requires your game to ask for a new WBID.
+7. Launch the game and make sure you've reached the main menu.
+8. Close the game and re-launch it. This will ensure your account is linked to Steam.
+9. Launch the game and click on **Store** in the main menu.
+10. If your account was linked successfully, your display name will be shown as a store item.
+11. You're now ready to play!
 
 ### Migration
 

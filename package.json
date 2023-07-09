@@ -28,6 +28,5 @@
     "qs": "^6.11.2",
     "uuid-by-string": "^4.0.0",
     "xml-js": "^1.6.11"
-  },
-  "type": "module"
+  }
 }
