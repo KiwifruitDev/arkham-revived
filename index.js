@@ -91,7 +91,7 @@ app.post("/auth/token", function(req, res) {
         return;
     }
     // Find UUID by ticket header
-    const ticketHeader = req.body.ticket.split("_")[0].split("-")[0];;
+    const ticketHeader = req.body.ticket.replace("_", "").replace("-", "");
     const uuidDb = db.prepare("SELECT uuid FROM users WHERE consoleticket = ?").get(ticketHeader);
     let uuid;
     if(!uuidDb) {
@@ -496,7 +496,7 @@ const wbmanagement = {
         //args.realm == "STEAM" && 
         if(args.title == "OZZY" && args.uniqueId) {
             // Create or set UUID in database using characters before / in consoleTicket
-            const ticketHeader = args.consoleTicket.split("/")[0].split("+")[0];
+            const ticketHeader = args.consoleTicket.replace("/", "").replace("+", "");
             const uuid = getUuid(ticketHeader);
             // Create entry if it doesn't exist
             const user = db.prepare("SELECT * FROM users WHERE consoleid = ?").get(args.consoleId);
@@ -507,7 +507,7 @@ const wbmanagement = {
             } else {
                 // Update console ID and ticket
                 const prep = db.prepare("UPDATE users SET consoleticket = ?, uuid = ?, ip = ? WHERE consoleid = ?");
-                prep.run(ticketHeader, uuid, args.consoleId, args.ip);
+                prep.run(ticketHeader, uuid, args.ip, args.consoleId);
             }
             /*
             return {
