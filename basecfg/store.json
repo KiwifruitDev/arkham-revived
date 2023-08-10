@@ -1,53 +1,44 @@
 {
-    "total_count": 4,
-    "next_page": 2,
-    "items": [
+  "total_count": 4,
+  "next_page": 2,
+  "items": [
       {
-        "item_id": "f2b44d03-33ba-4ebe-93a9-033693189422",
-        "price": {
-          "b0be7fae-1c6a-5ddf-b0de-97db7c8afa48": -4
-        },
-        "vendor": 0,
-        "id": "283047af-006e-4fe7-a3a1-4351fe94d476",
-        "product_id": ""
+          "item_id": "17bccb09-d281-5709-95aa-f00d9a3fff22",
+          "price": {
+              "b0be7fae-1c6a-5ddf-b0de-97db7c8afa48": 6000
+          },
+          "vendor": 0,
+          "id": "60d68dd6-61f1-580d-82c8-4435bef7b833",
+          "product_id": ""
       },
       {
-        "item_id": "63598daa-6c2b-4895-a15f-5af4a435ccf8",
-        "price": {
-          "b0be7fae-1c6a-5ddf-b0de-97db7c8afa48": -3
-        },
-        "vendor": 0,
-        "id": "e62345be-304c-4551-8472-8bd2c367f3f3",
-        "product_id": ""
+          "item_id": "22d5dd7f-80cb-5699-bfa0-555729e58a14",
+          "price": {
+              "b0be7fae-1c6a-5ddf-b0de-97db7c8afa48": 3000
+          },
+          "vendor": 0,
+          "id": "81db514b-872d-5638-a4c4-46eefd9d890b",
+          "product_id": ""
       },
       {
-        "item_id": "774c23b3-8a63-46a7-b90d-e719b441a72b",
-        "price": {
-          "b0be7fae-1c6a-5ddf-b0de-97db7c8afa48": -2
-        },
-        "vendor": 0,
-        "id": "8b611b15-b560-463d-af74-78915fa399f7",
-        "product_id": ""
+          "item_id": "8df2d526-a5c4-5328-9c83-33d8cd2b4375",
+          "price": {
+              "b0be7fae-1c6a-5ddf-b0de-97db7c8afa48": 4000
+          },
+          "vendor": 0,
+          "id": "b398c126-e1c5-5f3e-8407-444d17c37906",
+          "product_id": ""
       },
       {
-        "item_id": "24d120f9-8b68-47c9-8f17-28e1022c6007",
-        "price": {
-          "b0be7fae-1c6a-5ddf-b0de-97db7c8afa48": -1
-        },
-        "vendor": 0,
-        "id": "d7482553-7c71-41a0-8db1-ab272089bd89",
-        "product_id": ""
-      },
-      {
-        "item_id": "1f6de0b2-f4d2-42cf-ac0e-39f4c2139116",
-        "price": {
-          "b0be7fae-1c6a-5ddf-b0de-97db7c8afa48": 123456789
-        },
-        "vendor": 0,
-        "id": "00834010-c1ad-4197-a010-2934d5eb0d4a",
-        "product_id": ""
+          "item_id": "bd8806db-35e3-5119-8ea5-72566b4b99c9",
+          "price": {
+              "b0be7fae-1c6a-5ddf-b0de-97db7c8afa48": 2000
+          },
+          "vendor": 0,
+          "id": "09ca94a9-b5a6-5afc-a102-17917b164d4c",
+          "product_id": ""
       }
-    ],
-    "page": 1,
-    "pages": 1
+  ],
+  "page": 1,
+  "pages": 1
 }

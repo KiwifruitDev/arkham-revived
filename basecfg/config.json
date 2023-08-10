@@ -1,66 +1,17 @@
 {
     "host": {
-        "public": "./web/",
-        "domain": "arkham.kiwifruitdev.page",
         "http_port": 80,
         "https_port": 443,
-        "https_enabled": true,
+        "https_enabled": false,
         "localhost_passthrough_port": 8080,
         "localhost_passthrough_enabled": true,
         "https_key": "./ssl/privkey.pem",
         "https_cert": "./ssl/fullchain.pem",
-        "keepalive_timeout": 5,
-        "show_port": false
+        "keepalive_timeout": 5
     },
     "database": {
         "path": "./database.db",
         "wipe_on_start": false
     },
-    "event": {
-        "end_time": 1688531702105,
-        "duration": 604800,
-        "name": "Joker's Carnage"
-    },
-    "localhost": "184.182.74.152",
-    "debug": true,
-    "discord_bot": {
-        "enabled": true,
-        "commands_md5": "c0a4d63001e47bd28ee3b2e84f11345a",
-        "status": "online",
-        "activity_type": "playing",
-        "activity": "Arkham Origins Online",
-        "role_grants": [
-            {
-                "guild": "818285975876665384",
-                "role": "1121690875446173707"
-            },
-            {
-                "guild": "1115154390853095514",
-                "role": "1121868651063152742"
-            }
-        ],
-        "maps": {
-            "any": {
-                "name": "Any Map",
-                "thumbnail": "https://i.imgur.com/vjI4tjw.png"
-            },
-            "mp_wcp": {
-                "name": "Wayne Chemical Plant",
-                "thumbnail": "https://i.imgur.com/f1Yqnq2.png"
-            },
-            "mp_prison": {
-                "name": "Blackgate Prison",
-                "thumbnail": "https://i.imgur.com/lLfK8D2.png"
-            },
-            "mp_funhouse": {
-                "name": "Joker's Funhouse",
-                "thumbnail": "https://i.imgur.com/cuYmkn8.png"
-            },
-            "mp_robotfactory": {
-                "name": "Wonder City Robot Factory",
-                "thumbnail": "https://i.imgur.com/PI0Ssj0.png"
-            }
-        }
-    },
-    "appid": "209000"
+    "debug": true
 }
