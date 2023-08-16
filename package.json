@@ -17,17 +17,11 @@
   },
   "homepage": "https://github.com/KiwifruitDev/arkham-revived#readme",
   "dependencies": {
-    "axios": "^1.4.0",
     "better-sqlite3": "^8.4.0",
-    "discord.js": "^14.11.1-dev.1687479164-75d91b5.0",
-    "dotenv": "^16.3.0",
     "express": "^4.18.2",
     "fs-extra": "^11.1.1",
     "geoip-lite": "^1.4.7",
-    "node-steam-openid": "^1.0.3",
-    "qs": "^6.11.2",
     "uuid-by-string": "^4.0.0",
     "xml-js": "^1.6.11"
-  },
-  "type": "module"
+  }
 }

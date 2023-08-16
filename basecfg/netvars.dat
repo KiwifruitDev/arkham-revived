@@ -8,7 +8,7 @@ TestNetVarValue=2
 Enabled=true
 
 [Default__RGFxMovieUI_MainMenu RGFxMovieUI_MainMenu]
-bEnableWBID=false
+bEnableWBID=true
 
 [Default__GDProfileSystemMatchmakingData GDProfileSystemMatchmakingData]
 Cfg_INT_MaxHistoricalMatches=100

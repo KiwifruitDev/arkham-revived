@@ -67,7 +67,9 @@
             </p>
             <br><br><br>
             <a href="/getting-started.html" class="btn waves-effect waves-light orange" id="get-started">Get Started</a>
-            <a href="/auth/discord/" class="btn waves-effect waves-light blurple persistencegoaway">Link to Discord</a>
+            <a href="/auth/discord/" class="btn waves-effect waves-light blurple">Link to Discord</a>
+            <br><br>
+            <a href="/delete" class="btn waves-effect waves-light red persistencegoaway">Delete Progress</a>
             <br class="persistencegoaway"><br class="persistencegoaway">
             <a href="#!" class="btn waves-effect waves-light persistencegoaway" id="persistent-button"></a>
           </div>
@@ -159,13 +161,15 @@
             document.getElementById('wbid').innerHTML = wbid;
             document.getElementById('persistent-button').href = persistent == 'true' ? `/persistence?persistent=false&wbid=${wbid}&steamid=${steamid}&avatar=${profilePic}&persona=${profileName}&lastlocation=${lastlocation}&loggedin=true` : `/persistence?persistent=true&wbid=${wbid}&steamid=${steamid}&avatar=${profilePic}&persona=${profileName}&lastlocation=${lastlocation}&loggedin=true`;
             additional = `&lastlocation=${lastlocation}&wbid=${wbid}`;
+            document.getElementById('persistence-text').innerHTML = "Progress is currently linked to your Steam account.";
+            document.getElementById('persistent-button').style.display = 'none';
         } else {
             loggedin = 'false';
             document.getElementById('login-state').style.display = 'none';
             for(let i = 0; i < document.getElementsByClassName('persistencegoaway').length; i++) {
                 document.getElementsByClassName('persistencegoaway')[i].style.display = 'none';
             }
-            document.getElementById('persistence-text').innerHTML = "You do not have any progress linked to your Steam account.<br>Please access the server with the game and visit this page again for more options.";
+            document.getElementById('persistence-text').innerHTML = "You do not have any progress linked to your Steam account.";
         }
         document.getElementById('get-started').href = `${document.getElementById('get-started').href}?avatar=${profilePic}&persona=${profileName}&steamid=${steamid}&loggedin=${loggedin}${additional}`;
     </script>
